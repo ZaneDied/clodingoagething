@@ -3,11 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Jesus is King</title>
+    <style>
+        body {
+            background-color: #333; /* Dark background */
+            color: #fff;            /* White text */
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            overflow: hidden; /* prevents scroll bars when the text flashes and changes size*/
+        }
+
+        .center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .flash {
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>
-        Fear the lamb
-    </h1>
+    <div class="center">
+        <h1 class="flash" id="text-element"> </h1>
+    </div>
+
+    <script>
+        // Get the text element
+        let textElement = document.querySelector('.flash');
+        let texts = ['Jesus is King.', 'Fear the lamb.', 'All glory to lord Jesus.', 'Kings of kings.'];
+        let currentIndex = 0;
+
+        // Function to animate typing
+        function animateTyping(text, callback) {
+            let i = 0;
+            let typingInterval = setInterval(() => {
+                if (i < text.length) {
+                    textElement.textContent += text[i];
+                    i++;
+                } else {
+                    clearInterval(typingInterval);
+                    callback();
+                }
+            }, 50);
+        }
+
+        // Function to animate deleting
+        function animateDeleting(text, callback) {
+            let i = text.length - 1;
+            let deletingInterval = setInterval(() => {
+                if (i >= 0) {
+                    textElement.textContent = text.substring(0, i);
+                    i--;
+                } else {
+                    clearInterval(deletingInterval);
+                    callback();
+                }
+            }, 50);
+        }
+
+        function animateText(text) {
+            textElement.textContent = ""; // Clear the text before typing
+            animateTyping(text, () => {
+                setTimeout(() => {
+                    animateDeleting(text, () => {
+                        nextIteration(); // Call next iteration
+                    });
+                }, 2000); // Wait for 2 seconds before deleting
+            });
+        }
+
+        // Function to start next iteration
+        function nextIteration() {
+            currentIndex = (currentIndex + 1) % texts.length;
+            animateText(texts[currentIndex]);
+        }
+
+        // Start the animation
+        animateText(texts[0]);
+    </script>
 </body>
 </html>
