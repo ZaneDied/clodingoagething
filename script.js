@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+// AUTHENTICATION IMPORTS REMOVED: getAuth, signInAnonymously, onAuthStateChanged, etc.
 
 // Global variables provided by the environment (if running in a special environment)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -21,9 +21,7 @@ const userProvidedConfig = {
     appId: "1:736064228636:web:3b5335280a133013de3ed9",
 };
 
-// **FIXED LOGIC:** Use the environment config if it's fully populated (e.g., has authDomain).
-// Otherwise, rely on the known good configuration provided by the user.
-// Combining them ensures no key is accidentally missed.
+// **FIXED LOGIC:** Use the environment config if it's fully populated.
 const activeConfig = {
     ...userProvidedConfig, 
     ...firebaseConfig 
@@ -32,52 +30,27 @@ const activeConfig = {
 // Initialize Firebase App and Services
 const app = initializeApp(activeConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
+// const auth = getAuth(app); // AUTH SERVICE REMOVED
 
-let userId = null;
-let isAuthReady = false;
+// Set fixed, public IDs that match the simplified security rules
+const userId = 'PUBLIC'; // All users share this ID
+const appId = 'GLOBAL';
+
 
 // =================================================================
-// 2. AUTHENTICATION (The Waiter getting their ID badge)
+// 2. AUTHENTICATION (REMOVED FOR PUBLIC BILLBOARD)
 // =================================================================
 
-async function authenticateUser() {
-    try {
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-            await signInAnonymously(auth); // Use anonymous sign-in to get a unique UID
-        }
-        console.log("Authentication successful.");
-    } catch (error) {
-        // ERROR HANDLING IMPROVEMENT: Log and display the full error code for diagnosis
-        console.error("Firebase Authentication failed:", error);
-        displayMessage(`Authentication failed: ${error.code}`, 'error');
-    }
+// REMOVE: authenticateUser()
+// REMOVE: onAuthStateChanged(auth, (user) => { ... })
+// REMOVE: authenticateUser();
+
+// Update the user display immediately since the ID is known
+const userIdDisplay = document.getElementById('user-id-display');
+if (userIdDisplay) {
+    userIdDisplay.textContent = userId;
 }
 
-// Wait for the unique User ID (UID) to be generated
-onAuthStateChanged(auth, (user) => {
-    if (user) {
-        userId = user.uid;
-        // Check to ensure the element exists before trying to access textContent
-        const userIdDisplay = document.getElementById('user-id-display');
-        if (userIdDisplay) {
-            userIdDisplay.textContent = userId;
-        }
-    } else {
-        userId = 'UNAUTHENTICATED'; 
-        const userIdDisplay = document.getElementById('user-id-display');
-        if (userIdDisplay) {
-            userIdDisplay.textContent = userId;
-        }
-    }
-    isAuthReady = true;
-    console.log("Authentication state set. User ID:", userId);
-    startRealtimeListener();
-});
-
-authenticateUser();
 
 // =================================================================
 // 3. TASK LOGIC (Placing Orders and Listening for the Bell)
@@ -90,7 +63,7 @@ const messageBox = document.getElementById('message-box');
 
 // Utility function to show messages in the app
 function displayMessage(message, type) {
-    if (!messageBox) return; // Guard against missing element
+    if (!messageBox) return; 
     
     messageBox.textContent = message;
     messageBox.className = `message-box message-${type}`;
@@ -101,21 +74,17 @@ function displayMessage(message, type) {
 }
 
 
-// Defines the exact collection path matching your security rules
+// Defines the collection path for the public billboard
 const getCollectionPath = () => {
-    // OLD/INCORRECT: return `artifacts/${appId}/users/${userId}/tasks`;
-    // NEW/CORRECT:
-    return `users/${userId}/tasks`; 
+    // Path is now fixed: /users/PUBLIC/tasks
+    return `users/${userId}/tasks`;
 };
 
 // --- Function to ADD A TASK ---
 const addTask = async () => {
-    if (!isAuthReady || !userId || userId === 'UNAUTHENTICATED') {
-        displayMessage("Still connecting to the server. Try again in a moment, or check the authentication error.", 'error');
-        return;
-    }
+    // NO AUTH GUARDS NEEDED: The app is always ready.
     
-    if (!taskInput) return; // Guard against missing element
+    if (!taskInput) return;
     
     const taskText = taskInput.value.trim();
     if (taskText === "") {
@@ -124,7 +93,7 @@ const addTask = async () => {
     }
 
     const path = getCollectionPath();
-    console.log(`Attempting to add task to path: ${path}`);
+    console.log(`Attempting to add task to public path: ${path}`);
     
     try {
         // Use addDoc to place the order in the Kitchen (Firestore)
@@ -138,8 +107,8 @@ const addTask = async () => {
         taskInput.value = '';
     } catch (error) {
         console.error("ERROR: Could not save document.", error);
-        // This is often where a "Permission Denied" error shows up!
-        displayMessage(`ERROR: Could not save task. Permission denied: ${error.code}`, 'error');
+        // User MUST have published the rule 'allow read, write: if true;'
+        displayMessage(`ERROR: Could not save task. Did you publish the Security Rules?`, 'error');
     }
 };
 
@@ -148,16 +117,19 @@ if (addTaskBtn) {
 }
 
 
-// --- REAL-TIME LISTENER ---
+// --- REAL-TIME LISTENER (The corrected function) ---
+let listenerStarted = false;
+
 function startRealtimeListener() {
-    if (!isAuthReady || !userId || userId === 'UNAUTHENTICATED') {
-        // Only start if a valid user ID is available
-        console.warn("Listener skipped: Authentication not complete or failed.");
+    if (listenerStarted) {
+        // Prevent accidental double-call
         return;
     }
-
+    
     const path = getCollectionPath();
     const tasksCollectionRef = collection(db, path);
+    // NO AUTH GUARDS NEEDED HERE EITHER
+
     const tasksQuery = query(tasksCollectionRef, orderBy("timestamp", "desc"));
     console.log(`Starting real-time listener on path: ${path}`);
 
@@ -175,8 +147,13 @@ function startRealtimeListener() {
         });
 
         console.log(`SUCCESS: Database update received. Total tasks: ${snapshot.size}`);
+        listenerStarted = true;
     }, (error) => {
         console.error("FATAL ERROR: Real-time listener failed to connect or maintain sync.", error);
         displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
     });
 }
+
+
+// Crucial change: Start the listener immediately since no authentication is required.
+startRealtimeListener();
