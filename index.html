@@ -5,22 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Real-Time Task Tracker</title>
     <link rel="stylesheet" href="style.css">
-    
-    </head>
+</head>
 <body>
     <div class="container">
         <h1>Syncing Task Tracker</h1>
+        <p class="user-info-note">Your private ID (for finding your data in the Kitchen): <span id="user-id-display">...</span></p>
         
         <div class="input-area">
             <input type="text" id="task-input" placeholder="Enter a new task...">
             <button id="add-task-btn">Add Task</button>
         </div>
         
+        <div id="message-box" class="message-box"></div>
+
         <h2>My Tasks:</h2>
         <ul id="task-list">
             </ul>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="script.js"></script>
 </body>
 </html>

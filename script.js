@@ -2,17 +2,17 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
-// Global variables provided by the environment (required for data security setup)
+// Global variables provided by the environment (if running in a special environment)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // =================================================================
-// 1. FIREBASE INITIALIZATION AND AUTHENTICATION
+// 1. FIREBASE CONFIGURATION (The Kitchen Address)
 // =================================================================
 
-// 1a. Your Firebase Web App Configuration (from your input, adjusted for imports)
-const yourFirebaseConfig = {
+// Your provided configuration (used as fallback if environment config is empty)
+const userProvidedConfig = {
     apiKey: "AIzaSyCQAU1Qzqwfbpq746fiv6JSByasACCPIE0",
     authDomain: "tracker-6fae3.firebaseapp.com",
     projectId: "tracker-6fae3",
@@ -21,8 +21,7 @@ const yourFirebaseConfig = {
     appId: "1:736064228636:web:3b5335280a133013de3ed9",
 };
 
-// Use the environment's config if available, otherwise use the user's provided config
-const activeConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : yourFirebaseConfig;
+const activeConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : userProvidedConfig;
 
 // Initialize Firebase App and Services
 const app = initializeApp(activeConfig);
@@ -32,15 +31,16 @@ const auth = getAuth(app);
 let userId = null;
 let isAuthReady = false;
 
-// Authenticate the user (using the provided token or anonymously)
+// =================================================================
+// 2. AUTHENTICATION (The Waiter getting their ID badge)
+// =================================================================
+
 async function authenticateUser() {
     try {
         if (initialAuthToken) {
-            console.log("Attempting sign-in with custom token...");
             await signInWithCustomToken(auth, initialAuthToken);
         } else {
-            console.log("Attempting anonymous sign-in...");
-            await signInAnonymously(auth);
+            await signInAnonymously(auth); // Use anonymous sign-in to get a unique UID
         }
         console.log("Authentication successful.");
     } catch (error) {
@@ -49,27 +49,24 @@ async function authenticateUser() {
     }
 }
 
-// Wait for the authentication state to be established
+// Wait for the unique User ID (UID) to be generated
 onAuthStateChanged(auth, (user) => {
     if (user) {
         userId = user.uid;
         document.getElementById('user-id-display').textContent = userId;
     } else {
-        // Fallback for unauthenticated state (should not happen with anonymous sign-in)
-        userId = crypto.randomUUID(); 
-        document.getElementById('user-id-display').textContent = `Anon-${userId.substring(0, 8)} (Please refresh)`;
+        userId = 'UNAUTHENTICATED'; 
+        document.getElementById('user-id-display').textContent = userId;
     }
     isAuthReady = true;
     console.log("Authentication state set. User ID:", userId);
-    // Start listening to the database only after auth is ready
     startRealtimeListener();
 });
 
-// Immediately attempt authentication
 authenticateUser();
 
 // =================================================================
-// 2. DOM ELEMENTS & TASK LOGIC
+// 3. TASK LOGIC (Placing Orders and Listening for the Bell)
 // =================================================================
 
 const taskInput = document.getElementById('task-input');
@@ -82,89 +79,80 @@ function displayMessage(message, type) {
     messageBox.textContent = message;
     messageBox.className = `message-box message-${type}`;
     messageBox.style.display = 'block';
-    // Hide the message after 5 seconds
     setTimeout(() => {
         messageBox.style.display = 'none';
     }, 5000);
 }
 
 
-// Define the path where data will be stored (Private to the user)
+// Defines the exact collection path matching your security rules
 const getCollectionPath = () => {
-    // Stores data under: /artifacts/{appId}/users/{userId}/tasks
+    // Path: /artifacts/{appId}/users/{userId}/tasks
     return `artifacts/${appId}/users/${userId}/tasks`;
 };
 
 // --- Function to ADD A TASK ---
 const addTask = async () => {
-    console.log("1. Add Task button clicked.");
     if (!isAuthReady || !userId) {
-        console.warn("2. Authentication not ready. Cannot add task.");
         displayMessage("Still connecting to the server. Try again in a moment.", 'error');
         return;
     }
     
     const taskText = taskInput.value.trim();
-
     if (taskText === "") {
-        console.warn("2. Input is empty.");
         displayMessage("Please type something first!", 'error');
         return;
     }
 
+    const path = getCollectionPath();
+    console.log(`Attempting to add task to path: ${path}`);
+    
     try {
-        console.log(`3. Attempting to add task: "${taskText}" to path: ${getCollectionPath()}`);
-        
-        // Add a new document (task) to the user's private collection
-        const docRef = await addDoc(collection(db, getCollectionPath()), {
+        // Use addDoc to place the order in the Kitchen (Firestore)
+        await addDoc(collection(db, path), {
             text: taskText,
-            timestamp: serverTimestamp() // Uses Firestore's server timestamp
+            timestamp: serverTimestamp()
         });
         
-        console.log("4. Task added successfully with ID:", docRef.id);
+        console.log("Task added successfully.");
         displayMessage("Task saved! Synced with the Kitchen.", 'success');
-        taskInput.value = ''; // Clear input field after success
+        taskInput.value = '';
     } catch (error) {
-        console.error("4. ERROR: Could not save document.", error);
-        displayMessage(`ERROR saving task: ${error.message}`, 'error');
-        // NOTE: The most common error here is a "Permission Denied" error 
-        // if your Firebase security rules are not set up to allow writing.
+        console.error("ERROR: Could not save document.", error);
+        // This is often where a "Permission Denied" error shows up!
+        displayMessage(`ERROR: Could not save task. Did you publish the Security Rules?`, 'error');
     }
 };
 
 addTaskBtn.addEventListener('click', addTask);
 
 
-// --- REAL-TIME LISTENER (The Syncing Magic!) ---
+// --- REAL-TIME LISTENER ---
 function startRealtimeListener() {
     if (!isAuthReady || !userId) {
-        return; // Guard clause: do not run until auth is confirmed
+        return;
     }
 
-    const tasksCollectionRef = collection(db, getCollectionPath());
+    const path = getCollectionPath();
+    const tasksCollectionRef = collection(db, path);
     const tasksQuery = query(tasksCollectionRef, orderBy("timestamp", "desc"));
-    console.log(`Starting real-time listener on path: ${getCollectionPath()}`);
+    console.log(`Starting real-time listener on path: ${path}`);
 
 
-    // onSnapshot creates a persistent listener. 
+    // onSnapshot is the "Kitchen Bell" that updates the display instantly
     onSnapshot(tasksQuery, (snapshot) => {
-        taskList.innerHTML = ''; // Clear the existing list
+        taskList.innerHTML = ''; 
 
-        // Loop through all documents returned in the snapshot
         snapshot.forEach((doc) => {
             const task = doc.data();
-            
-            // Create the HTML element
             const li = document.createElement('li');
             li.textContent = task.text; 
-            
-            // Add to the displayed list
             taskList.appendChild(li);
         });
 
-        console.log(`SUCCESS: Database update received and list refreshed. Total tasks: ${snapshot.size}`);
+        console.log(`SUCCESS: Database update received. Total tasks: ${snapshot.size}`);
     }, (error) => {
         console.error("FATAL ERROR: Real-time listener failed to connect or maintain sync.", error);
-        displayMessage(`FATAL SYNC ERROR: ${error.message}. Check browser console.`, 'error');
+        displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
     });
 }
