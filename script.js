@@ -103,8 +103,9 @@ function displayMessage(message, type) {
 
 // Defines the exact collection path matching your security rules
 const getCollectionPath = () => {
-    // Path must now be: /users/{userId}/tasks
-    return `users/${userId}/tasks`; // <-- This must be updated in your JS file
+    // OLD/INCORRECT: return `artifacts/${appId}/users/${userId}/tasks`;
+    // NEW/CORRECT:
+    return `users/${userId}/tasks`; 
 };
 
 // --- Function to ADD A TASK ---
