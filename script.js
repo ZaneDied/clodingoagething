@@ -21,7 +21,13 @@ const userProvidedConfig = {
     appId: "1:736064228636:web:3b5335280a133013de3ed9",
 };
 
-const activeConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : userProvidedConfig;
+// **FIXED LOGIC:** Use the environment config if it's fully populated (e.g., has authDomain).
+// Otherwise, rely on the known good configuration provided by the user.
+// Combining them ensures no key is accidentally missed.
+const activeConfig = {
+    ...userProvidedConfig, 
+    ...firebaseConfig 
+}; 
 
 // Initialize Firebase App and Services
 const app = initializeApp(activeConfig);
@@ -44,6 +50,7 @@ async function authenticateUser() {
         }
         console.log("Authentication successful.");
     } catch (error) {
+        // ERROR HANDLING IMPROVEMENT: Log and display the full error code for diagnosis
         console.error("Firebase Authentication failed:", error);
         displayMessage(`Authentication failed: ${error.code}`, 'error');
     }
@@ -53,10 +60,17 @@ async function authenticateUser() {
 onAuthStateChanged(auth, (user) => {
     if (user) {
         userId = user.uid;
-        document.getElementById('user-id-display').textContent = userId;
+        // Check to ensure the element exists before trying to access textContent
+        const userIdDisplay = document.getElementById('user-id-display');
+        if (userIdDisplay) {
+            userIdDisplay.textContent = userId;
+        }
     } else {
         userId = 'UNAUTHENTICATED'; 
-        document.getElementById('user-id-display').textContent = userId;
+        const userIdDisplay = document.getElementById('user-id-display');
+        if (userIdDisplay) {
+            userIdDisplay.textContent = userId;
+        }
     }
     isAuthReady = true;
     console.log("Authentication state set. User ID:", userId);
@@ -76,6 +90,8 @@ const messageBox = document.getElementById('message-box');
 
 // Utility function to show messages in the app
 function displayMessage(message, type) {
+    if (!messageBox) return; // Guard against missing element
+    
     messageBox.textContent = message;
     messageBox.className = `message-box message-${type}`;
     messageBox.style.display = 'block';
@@ -93,10 +109,12 @@ const getCollectionPath = () => {
 
 // --- Function to ADD A TASK ---
 const addTask = async () => {
-    if (!isAuthReady || !userId) {
-        displayMessage("Still connecting to the server. Try again in a moment.", 'error');
+    if (!isAuthReady || !userId || userId === 'UNAUTHENTICATED') {
+        displayMessage("Still connecting to the server. Try again in a moment, or check the authentication error.", 'error');
         return;
     }
+    
+    if (!taskInput) return; // Guard against missing element
     
     const taskText = taskInput.value.trim();
     if (taskText === "") {
@@ -120,16 +138,20 @@ const addTask = async () => {
     } catch (error) {
         console.error("ERROR: Could not save document.", error);
         // This is often where a "Permission Denied" error shows up!
-        displayMessage(`ERROR: Could not save task. Did you publish the Security Rules?`, 'error');
+        displayMessage(`ERROR: Could not save task. Permission denied: ${error.code}`, 'error');
     }
 };
 
-addTaskBtn.addEventListener('click', addTask);
+if (addTaskBtn) {
+    addTaskBtn.addEventListener('click', addTask);
+}
 
 
 // --- REAL-TIME LISTENER ---
 function startRealtimeListener() {
-    if (!isAuthReady || !userId) {
+    if (!isAuthReady || !userId || userId === 'UNAUTHENTICATED') {
+        // Only start if a valid user ID is available
+        console.warn("Listener skipped: Authentication not complete or failed.");
         return;
     }
 
@@ -141,6 +163,7 @@ function startRealtimeListener() {
 
     // onSnapshot is the "Kitchen Bell" that updates the display instantly
     onSnapshot(tasksQuery, (snapshot) => {
+        if (!taskList) return; // Guard against missing element
         taskList.innerHTML = ''; 
 
         snapshot.forEach((doc) => {
