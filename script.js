@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-// AUTHENTICATION IMPORTS REMOVED: getAuth, signInAnonymously, onAuthStateChanged, etc.
+
 
 // Global variables provided by the environment (if running in a special environment)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -30,7 +30,7 @@ const activeConfig = {
 // Initialize Firebase App and Services
 const app = initializeApp(activeConfig);
 const db = getFirestore(app);
-// const auth = getAuth(app); // AUTH SERVICE REMOVED
+
 
 // Set fixed, public IDs that match the simplified security rules
 const userId = 'PUBLIC'; // All users share this ID
@@ -41,9 +41,6 @@ const appId = 'GLOBAL';
 // 2. AUTHENTICATION (REMOVED FOR PUBLIC BILLBOARD)
 // =================================================================
 
-// REMOVE: authenticateUser()
-// REMOVE: onAuthStateChanged(auth, (user) => { ... })
-// REMOVE: authenticateUser();
 
 // Update the user display immediately since the ID is known
 const userIdDisplay = document.getElementById('user-id-display');
