@@ -32,9 +32,9 @@ const app = initializeApp(activeConfig);
 const db = getFirestore(app);
 
 
-// Set fixed, public IDs that match the simplified security rules
+// Set fixed, public ID that matches the simplified security rules
 const userId = 'PUBLIC'; // All users share this ID
-const appId = 'GLOBAL';
+// REMOVED: const appId = 'GLOBAL'; // This was the duplicate declaration
 
 
 // =================================================================
