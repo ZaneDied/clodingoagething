@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
 // Global variables provided by the environment (required for data security setup)
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
@@ -36,12 +36,16 @@ let isAuthReady = false;
 async function authenticateUser() {
     try {
         if (initialAuthToken) {
+            console.log("Attempting sign-in with custom token...");
             await signInWithCustomToken(auth, initialAuthToken);
         } else {
+            console.log("Attempting anonymous sign-in...");
             await signInAnonymously(auth);
         }
+        console.log("Authentication successful.");
     } catch (error) {
         console.error("Firebase Authentication failed:", error);
+        displayMessage(`Authentication failed: ${error.code}`, 'error');
     }
 }
 
@@ -71,6 +75,19 @@ authenticateUser();
 const taskInput = document.getElementById('task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
+const messageBox = document.getElementById('message-box');
+
+// Utility function to show messages in the app
+function displayMessage(message, type) {
+    messageBox.textContent = message;
+    messageBox.className = `message-box message-${type}`;
+    messageBox.style.display = 'block';
+    // Hide the message after 5 seconds
+    setTimeout(() => {
+        messageBox.style.display = 'none';
+    }, 5000);
+}
+
 
 // Define the path where data will be stored (Private to the user)
 const getCollectionPath = () => {
@@ -80,28 +97,38 @@ const getCollectionPath = () => {
 
 // --- Function to ADD A TASK ---
 const addTask = async () => {
+    console.log("1. Add Task button clicked.");
     if (!isAuthReady || !userId) {
-        console.warn("Authentication not ready. Cannot add task.");
+        console.warn("2. Authentication not ready. Cannot add task.");
+        displayMessage("Still connecting to the server. Try again in a moment.", 'error');
         return;
     }
     
     const taskText = taskInput.value.trim();
 
     if (taskText === "") {
-        console.warn("Input is empty.");
+        console.warn("2. Input is empty.");
+        displayMessage("Please type something first!", 'error');
         return;
     }
 
     try {
+        console.log(`3. Attempting to add task: "${taskText}" to path: ${getCollectionPath()}`);
+        
         // Add a new document (task) to the user's private collection
-        await addDoc(collection(db, getCollectionPath()), {
+        const docRef = await addDoc(collection(db, getCollectionPath()), {
             text: taskText,
             timestamp: serverTimestamp() // Uses Firestore's server timestamp
         });
+        
+        console.log("4. Task added successfully with ID:", docRef.id);
+        displayMessage("Task saved! Synced with the Kitchen.", 'success');
         taskInput.value = ''; // Clear input field after success
     } catch (error) {
-        console.error("Error adding document: ", error);
-        // You would use a custom modal/message box here instead of alert()
+        console.error("4. ERROR: Could not save document.", error);
+        displayMessage(`ERROR saving task: ${error.message}`, 'error');
+        // NOTE: The most common error here is a "Permission Denied" error 
+        // if your Firebase security rules are not set up to allow writing.
     }
 };
 
@@ -116,9 +143,10 @@ function startRealtimeListener() {
 
     const tasksCollectionRef = collection(db, getCollectionPath());
     const tasksQuery = query(tasksCollectionRef, orderBy("timestamp", "desc"));
+    console.log(`Starting real-time listener on path: ${getCollectionPath()}`);
+
 
     // onSnapshot creates a persistent listener. 
-    // Any change to the database (from any device) triggers this function immediately.
     onSnapshot(tasksQuery, (snapshot) => {
         taskList.innerHTML = ''; // Clear the existing list
 
@@ -134,8 +162,9 @@ function startRealtimeListener() {
             taskList.appendChild(li);
         });
 
-        console.log(`Database update received. ${snapshot.size} tasks displayed.`);
+        console.log(`SUCCESS: Database update received and list refreshed. Total tasks: ${snapshot.size}`);
     }, (error) => {
-        console.error("Error listening to database changes: ", error);
+        console.error("FATAL ERROR: Real-time listener failed to connect or maintain sync.", error);
+        displayMessage(`FATAL SYNC ERROR: ${error.message}. Check browser console.`, 'error');
     });
 }
