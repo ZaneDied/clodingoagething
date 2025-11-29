@@ -11,26 +11,38 @@
         <h1>Real-Time KDA Tracker</h1>
         <p class="user-info-note">Shared Billboard ID: <span id="user-id-display">PUBLIC</span></p>
         
-        <div class="input-area">
-            <div class="kda-inputs">
-                <input type="number" id="kills-input" placeholder="Kills (K)" min="0">
-                <input type="number" id="deaths-input" placeholder="Deaths (D)" min="0">
-                <input type="number" id="assists-input" placeholder="Assists (A)" min="0">
+        <div class="main-content">
+            <div class="chart-area">
+                <h2>KDA Trend Over Time</h2>
+                <canvas id="kda-chart"></canvas>
+                <div class="kda-summary">
+                    <h2>Overall KDA:</h2>
+                    <p id="overall-kda">--</p>
+                </div>
             </div>
-            <button id="add-game-btn">Log Game</button>
-        </div>
-        
-        <div id="message-box" class="message-box"></div>
 
-        <div class="kda-summary">
-            <h2>Overall KDA:</h2>
-            <p id="overall-kda">--</p>
+            <div class="input-sidebar">
+                <h2>Log a Game:</h2>
+                
+                <div class="input-group">
+                    <label for="date-input">Game Date:</label>
+                    <input type="date" id="date-input">
+                </div>
+                
+                <div class="kda-inputs">
+                    <input type="number" id="kills-input" placeholder="Kills (K)" min="0">
+                    <input type="number" id="deaths-input" placeholder="Deaths (D)" min="0">
+                    <input type="number" id="assists-input" placeholder="Assists (A)" min="0">
+                </div>
+                
+                <button id="add-game-btn">Log Game</button>
+                <div id="message-box" class="message-box"></div>
+            </div>
         </div>
 
-        <h2>Game History:</h2>
+        <h2 class="history-header">Game History:</h2>
         <ul id="game-list">
             </ul>
-
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
