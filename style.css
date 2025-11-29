@@ -28,7 +28,12 @@ h1 {
     margin-top: 0;
 }
 
-/* --- MAIN FLEX LAYOUT --- */
+.user-info-note {
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+/* --- DESKTOP/DEFAULT LAYOUT --- */
 .main-content {
     display: flex;
     gap: 20px; 
@@ -41,13 +46,10 @@ h1 {
     padding: 15px; 
     border-radius: 8px;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
-    
-    /* CRITICAL: Defines space for the chart */
     position: relative; 
     height: 300px; 
 }
 
-/* NEW: Style for the zoom reset button container */
 .chart-controls {
     text-align: right;
     margin-top: 10px;
@@ -75,6 +77,16 @@ h1 {
     flex-direction: column;
     gap: 10px; 
 }
+
+/* KDA Inputs: Desktop uses inline-block/flex-row for small horizontal layout */
+.kda-inputs {
+    display: flex;
+    gap: 5px;
+}
+.kda-inputs input {
+    flex-grow: 1;
+}
+
 
 /* --- KDA Summary INLINE --- */
 .kda-summary-inline {
@@ -136,6 +148,7 @@ input[type="number"], input[type="date"] {
     padding: 0;
 }
 
+/* Default (Desktop) List Item Layout */
 #game-list li {
     background-color: #333;
     margin-bottom: 5px; 
@@ -210,4 +223,67 @@ input[type="number"], input[type="date"] {
 .message-success {
     background-color: #55ff55;
     color: #1a1a1a;
+}
+
+/* =================================================================
+// MOBILE RESPONSIVENESS (Screens less than 600px wide)
+// ================================================================= */
+
+@media (max-width: 600px) {
+    .container {
+        padding: 10px; 
+        margin-top: 10px;
+    }
+    
+    /* STACKING: Chart and Inputs vertically */
+    .main-content {
+        flex-direction: column;
+        gap: 15px; 
+    }
+    .chart-area, .input-sidebar {
+        flex: none; /* Reset flex ratios */
+        width: 100%;
+        height: auto; /* Allow chart to adjust height */
+    }
+
+    /* KDA Inputs: Stack vertically for easier tapping */
+    .kda-inputs {
+        flex-direction: column;
+        gap: 10px; /* Increase gap for separation */
+    }
+    
+    /* HISTORY LIST: Stack content vertically for readability */
+    #game-list li {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .daily-date {
+        width: auto;
+        font-size: 1em;
+    }
+
+    .daily-score {
+        /* Pushing score/kda to next line and centering it */
+        margin-right: 0;
+        text-align: left;
+    }
+    
+    .daily-kda-ratio {
+        /* Ensure KDA ratio gets its own line */
+        width: 100%;
+    }
+
+    .action-buttons {
+        /* Ensure buttons stay at the bottom of the list item */
+        margin-top: 8px;
+        align-self: flex-end;
+    }
+    
+    /* Make the chart a bit smaller on mobile */
+    .chart-area {
+        height: 250px;
+        padding: 10px;
+    }
 }
