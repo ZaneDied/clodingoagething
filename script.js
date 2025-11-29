@@ -70,6 +70,7 @@ function displayMessage(message, type) {
 // Utility function to format KDA (Kills + Assists) / Deaths
 function calculateKda(kills, deaths, assists) {
     if (deaths === 0) {
+        // If 0 deaths, return K+A, but limit to two decimal places for consistency
         return (kills + assists).toFixed(2);
     }
     return ((kills + assists) / deaths).toFixed(2);
@@ -80,7 +81,7 @@ const getCollectionPath = () => {
     return `users/${userId}/games`; 
 };
 
-// --- NEW FUNCTION: Set the date input to today's date ---
+// Set the date input to today's date
 function setInitialDate() {
     const today = new Date();
     
@@ -113,6 +114,7 @@ const addGame = async () => {
     }
 
     const path = getCollectionPath();
+    // Document ID is the date string (e.g., '2025-11-29')
     const docRef = doc(db, path, gameDate); 
     
     try {
@@ -144,7 +146,6 @@ const addGame = async () => {
         
         displayMessage(`Game Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
         
-        // Clear KDA inputs after success (keep date input)
         killsInput.value = '';
         deathsInput.value = '';
         assistsInput.value = '';
@@ -226,13 +227,19 @@ function updateOverallKDA(allGames) {
         careerAssists += dailyData.totalAssists;
     });
 
-    const overallKda = calculateKda(careerKills, careerDeaths, careerAssists);
-    overallKdaDisplay.textContent = overallKda;
+    // --- FIX 1: Handle NaN (when all totals are zero) ---
+    if (careerKills + careerAssists === 0 && careerDeaths === 0) {
+        overallKdaDisplay.textContent = '0.00';
+    } else {
+        const overallKda = calculateKda(careerKills, careerDeaths, careerAssists);
+        overallKdaDisplay.textContent = overallKda;
+    }
 }
 
 function updateChart(allGames) {
     if (!kdaChart) return;
     
+    // Sort games by date string for chronological plotting
     const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
     kdaChart.data.labels = sortedGames.map(game => game.date);
@@ -246,7 +253,6 @@ function startRealtimeListener() {
     
     const path = getCollectionPath();
     const gamesCollectionRef = collection(db, path);
-    
     const gamesQuery = query(gamesCollectionRef); 
     console.log(`Starting real-time listener on KDA path: ${path}`);
 
@@ -259,12 +265,20 @@ function startRealtimeListener() {
         snapshot.forEach((doc) => {
             const dailyData = doc.data();
             
-            if (doc.id) { 
-                dailyData.date = doc.id; 
+            // The document ID is the date (YYYY-MM-DD), but we use the stored 'date' field for safety
+            const dateString = dailyData.date || doc.id;
+            
+            // --- FIX 2: Filter out jumbled random Firestore IDs ---
+            // A valid date (YYYY-MM-DD) is always 10 characters and contains hyphens
+            if (dateString && dateString.length === 10 && dateString.includes('-')) {
+                dailyData.date = dateString; 
                 allDailyData.push(dailyData);
+            } else {
+                console.warn(`Skipping document with invalid date format: ${dateString}`);
             }
         });
 
+        // Sort data for display (most recent first)
         const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
         
         sortedDisplayData.forEach(dailyData => {
