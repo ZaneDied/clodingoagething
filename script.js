@@ -50,7 +50,6 @@ const gameList = document.getElementById('game-list');
 const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
-// NEW: Reset Zoom Button
 const resetZoomBtn = document.getElementById('reset-zoom-btn');
 
 let kdaChart; // Global variable to hold the Chart.js instance
@@ -293,28 +292,30 @@ function initializeChart() {
             },
             plugins: {
                 legend: { display: false },
-                // NEW: Zoom Plugin Configuration
+                // UPDATED: Zoom Plugin Configuration for better control
                 zoom: {
                     pan: {
-                        enabled: true, // Enable panning (dragging the chart)
-                        mode: 'xy', // Pan on both axes
+                        enabled: true, 
+                        mode: 'xy', // Panning (click and drag) is still active
                     },
                     zoom: {
                         wheel: {
-                            enabled: true, // Enable zooming with mouse wheel
+                            enabled: true, 
+                            // FIX: Require Ctrl key (or Cmd on Mac) to prevent accidental, uncontrollable zooming
+                            modifierKey: 'ctrl', 
                         },
                         pinch: {
-                            enabled: true // Enable zooming with pinch gestures (touch devices)
+                            enabled: true 
                         },
-                        mode: 'xy', // Zoom on both axes
+                        mode: 'xy', 
+                        // Ensures a controlled rate when using the pinch/touch zoom.
+                        sensitivity: 10,
                     },
                     limits: {
-                         // Optional: Set limits to prevent zooming too far out
                          x: { minRange: 1 }, 
                          y: { minRange: 0.1 } 
                     }
                 }
-                // End Zoom Plugin Configuration
             }
         }
     });
@@ -354,7 +355,7 @@ function updateChart(allGames) {
 function startRealtimeListener() {
     initializeChart(); 
 
-    // NEW: Attach event listener for the Reset Zoom button after initialization
+    // Attach event listener for the Reset Zoom button after initialization
     if (kdaChart && resetZoomBtn) {
         resetZoomBtn.style.display = 'inline-block';
         resetZoomBtn.addEventListener('click', () => {
