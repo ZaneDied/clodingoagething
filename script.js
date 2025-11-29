@@ -463,4 +463,4 @@ function startRealtimeListener() {
 
 // Start the application
 setInitialDate();
-startRealtimeListener();
+startRealtimeListener(); 
