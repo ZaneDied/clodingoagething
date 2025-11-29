@@ -1,17 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
 import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-
 // Global variables provided by the environment (if running in a special environment)
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
 
 // =================================================================
-// 1. FIREBASE CONFIGURATION (The Kitchen Address)
+// 1. FIREBASE CONFIGURATION (Use your provided config)
 // =================================================================
 
-// Your provided configuration (used as fallback if environment config is empty)
 const userProvidedConfig = {
     apiKey: "AIzaSyCQAU1Qzqwfbpq746fiv6JSByasACCPIE0",
     authDomain: "tracker-6fae3.firebaseapp.com",
@@ -21,7 +17,6 @@ const userProvidedConfig = {
     appId: "1:736064228636:web:3b5335280a133013de3ed9",
 };
 
-// **FIXED LOGIC:** Use the environment config if it's fully populated.
 const activeConfig = {
     ...userProvidedConfig, 
     ...firebaseConfig 
@@ -31,34 +26,26 @@ const activeConfig = {
 const app = initializeApp(activeConfig);
 const db = getFirestore(app);
 
-
-// Set fixed, public ID that matches the simplified security rules
-const userId = 'PUBLIC'; // All users share this ID
-// REMOVED: const appId = 'GLOBAL'; // This was the duplicate declaration
-
+// Set fixed, public ID for the universal billboard
+const userId = 'PUBLIC'; // Matches the /users/PUBLIC/games/{gameId} rule
 
 // =================================================================
-// 2. AUTHENTICATION (REMOVED FOR PUBLIC BILLBOARD)
+// 2. UI Elements and Utilities
 // =================================================================
 
-
-// Update the user display immediately since the ID is known
+const killsInput = document.getElementById('kills-input');
+const deathsInput = document.getElementById('deaths-input');
+const assistsInput = document.getElementById('assists-input');
+const addGameBtn = document.getElementById('add-game-btn');
+const gameList = document.getElementById('game-list');
+const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
+const messageBox = document.getElementById('message-box');
+
 if (userIdDisplay) {
     userIdDisplay.textContent = userId;
 }
 
-
-// =================================================================
-// 3. TASK LOGIC (Placing Orders and Listening for the Bell)
-// =================================================================
-
-const taskInput = document.getElementById('task-input');
-const addTaskBtn = document.getElementById('add-task-btn');
-const taskList = document.getElementById('task-list');
-const messageBox = document.getElementById('message-box');
-
-// Utility function to show messages in the app
 function displayMessage(message, type) {
     if (!messageBox) return; 
     
@@ -70,87 +57,132 @@ function displayMessage(message, type) {
     }, 5000);
 }
 
+// Utility function to format KDA (Kills + Assists) / Deaths
+function calculateKda(kills, deaths, assists) {
+    // Prevent division by zero: if deaths is 0, return K+A as the ratio
+    if (deaths === 0) {
+        return (kills + assists).toFixed(2);
+    }
+    return ((kills + assists) / deaths).toFixed(2);
+}
 
-// Defines the collection path for the public billboard
+// Defines the collection path for the public KDA billboard
 const getCollectionPath = () => {
-    // Path is now fixed: /users/PUBLIC/tasks
-    return `users/${userId}/tasks`;
+    // Path: /users/PUBLIC/games
+    return `users/${userId}/games`; 
 };
 
-// --- Function to ADD A TASK ---
-const addTask = async () => {
-    // NO AUTH GUARDS NEEDED: The app is always ready.
+// =================================================================
+// 3. LOGIC: ADDING A GAME
+// =================================================================
+
+const addGame = async () => {
+    // Ensure all inputs are valid numbers
+    const kills = parseInt(killsInput.value) || 0;
+    const deaths = parseInt(deathsInput.value) || 0;
+    const assists = parseInt(assistsInput.value) || 0;
     
-    if (!taskInput) return;
-    
-    const taskText = taskInput.value.trim();
-    if (taskText === "") {
-        displayMessage("Please type something first!", 'error');
+    if (kills < 0 || deaths < 0 || assists < 0) {
+        displayMessage("KDA scores must be zero or positive.", 'error');
         return;
     }
 
     const path = getCollectionPath();
-    console.log(`Attempting to add task to public path: ${path}`);
+    const kdaRatio = calculateKda(kills, deaths, assists);
     
     try {
-        // Use addDoc to place the order in the Kitchen (Firestore)
         await addDoc(collection(db, path), {
-            text: taskText,
-            timestamp: serverTimestamp()
+            kills: kills,
+            deaths: deaths,
+            assists: assists,
+            kdaRatio: parseFloat(kdaRatio), // Store calculated ratio for easy retrieval/sorting
+            timestamp: serverTimestamp() // Use server timestamp for reliable ordering
         });
         
-        console.log("Task added successfully.");
-        displayMessage("Task saved! Synced with the Kitchen.", 'success');
-        taskInput.value = '';
+        displayMessage(`Game logged! KDA: ${kdaRatio}`, 'success');
+        // Clear inputs after success
+        killsInput.value = '';
+        deathsInput.value = '';
+        assistsInput.value = '';
+
     } catch (error) {
         console.error("ERROR: Could not save document.", error);
-        // User MUST have published the rule 'allow read, write: if true;'
-        displayMessage(`ERROR: Could not save task. Did you publish the Security Rules?`, 'error');
+        // This is where you would get the permissions error if rules aren't set!
+        displayMessage(`ERROR: Could not log game. Check Firebase Rules!`, 'error');
     }
 };
 
-if (addTaskBtn) {
-    addTaskBtn.addEventListener('click', addTask);
+if (addGameBtn) {
+    addGameBtn.addEventListener('click', addGame);
+}
+
+// =================================================================
+// 4. LOGIC: REAL-TIME LISTENER & DISPLAY
+// =================================================================
+
+function updateOverallKDA(allGames) {
+    let totalKills = 0;
+    let totalDeaths = 0;
+    let totalAssists = 0;
+
+    allGames.forEach(game => {
+        totalKills += game.kills;
+        totalDeaths += game.deaths;
+        totalAssists += game.assists;
+    });
+
+    const overallKda = calculateKda(totalKills, totalDeaths, totalAssists);
+    overallKdaDisplay.textContent = overallKda;
+    
+    return { totalKills, totalDeaths, totalAssists };
 }
 
 
-// --- REAL-TIME LISTENER (The corrected function) ---
-let listenerStarted = false;
-
 function startRealtimeListener() {
-    if (listenerStarted) {
-        // Prevent accidental double-call
-        return;
-    }
-    
     const path = getCollectionPath();
-    const tasksCollectionRef = collection(db, path);
-    // NO AUTH GUARDS NEEDED HERE EITHER
+    const gamesCollectionRef = collection(db, path);
+    
+    // Order by timestamp to show the newest games first
+    const gamesQuery = query(gamesCollectionRef, orderBy("timestamp", "desc"));
+    console.log(`Starting real-time listener on KDA path: ${path}`);
 
-    const tasksQuery = query(tasksCollectionRef, orderBy("timestamp", "desc"));
-    console.log(`Starting real-time listener on path: ${path}`);
+    onSnapshot(gamesQuery, (snapshot) => {
+        if (!gameList) return; 
 
-
-    // onSnapshot is the "Kitchen Bell" that updates the display instantly
-    onSnapshot(tasksQuery, (snapshot) => {
-        if (!taskList) return; // Guard against missing element
-        taskList.innerHTML = ''; 
+        const allGames = [];
+        gameList.innerHTML = ''; 
 
         snapshot.forEach((doc) => {
-            const task = doc.data();
+            const game = doc.data();
+            allGames.push(game);
+            
+            // Format the score string
+            const scoreText = `${game.kills}/${game.deaths}/${game.assists}`;
+            const kdaRatioText = `KDA: ${calculateKda(game.kills, game.deaths, game.assists)}`;
+
             const li = document.createElement('li');
-            li.textContent = task.text; 
-            taskList.appendChild(li);
+            li.innerHTML = `
+                <span class="game-score">${scoreText}</span>
+                <span class="game-kda-ratio">${kdaRatioText}</span>
+            `; 
+            gameList.appendChild(li);
         });
 
-        console.log(`SUCCESS: Database update received. Total tasks: ${snapshot.size}`);
-        listenerStarted = true;
+        // Update the overall KDA summary
+        const totals = updateOverallKDA(allGames);
+        
+        // OPTIONAL: Update a Chart.js graph if the element exists
+        // (You would need a <canvas id="kda-chart"></canvas> element in your HTML)
+        // If you want a full graph, you'll need to research Chart.js implementation.
+        
+        console.log(`SUCCESS: KDA History updated. Total games: ${snapshot.size}`);
+
     }, (error) => {
-        console.error("FATAL ERROR: Real-time listener failed to connect or maintain sync.", error);
+        console.error("FATAL ERROR: Real-time listener failed to sync.", error);
         displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
     });
 }
 
 
-// Crucial change: Start the listener immediately since no authentication is required.
+// Start the listener immediately since no authentication is required.
 startRealtimeListener();

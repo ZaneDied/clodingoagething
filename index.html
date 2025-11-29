@@ -3,25 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Task Tracker</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Universal KDA Tracker</title>
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
     <div class="container">
-        <h1>Syncing Task Tracker</h1>
-        <p class="user-info-note">Your private ID (for finding your data in the Kitchen): <span id="user-id-display">...</span></p>
+        <h1>Real-Time KDA Tracker</h1>
+        <p class="user-info-note">Shared Billboard ID: <span id="user-id-display">PUBLIC</span></p>
         
         <div class="input-area">
-            <input type="text" id="task-input" placeholder="Enter a new task...">
-            <button id="add-task-btn">Add Task</button>
+            <div class="kda-inputs">
+                <input type="number" id="kills-input" placeholder="Kills (K)" min="0">
+                <input type="number" id="deaths-input" placeholder="Deaths (D)" min="0">
+                <input type="number" id="assists-input" placeholder="Assists (A)" min="0">
+            </div>
+            <button id="add-game-btn">Log Game</button>
         </div>
         
         <div id="message-box" class="message-box"></div>
 
-        <h2>My Tasks:</h2>
-        <ul id="task-list">
+        <div class="kda-summary">
+            <h2>Overall KDA:</h2>
+            <p id="overall-kda">--</p>
+        </div>
+
+        <h2>Game History:</h2>
+        <ul id="game-list">
             </ul>
+
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <script type="module" src="script.js"></script>
 </body>
