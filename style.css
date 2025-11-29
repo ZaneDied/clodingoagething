@@ -57,8 +57,9 @@ h1 {
 #reset-zoom-btn {
     padding: 5px 10px;
     background-color: #333;
-    color: #FFC300; /* Gold Text */
-    border: 1px solid #FFC300; /* Gold Border */
+    color: #FFC300; 
+    /* NEW: Gold Outline */
+    border: 1px solid #FFC300; 
     border-radius: 4px;
     cursor: pointer;
     font-size: 0.8em;
@@ -94,7 +95,7 @@ h1 {
     padding: 8px; 
     border-radius: 8px;
     margin-bottom: 10px; 
-    background-color: #333333; /* Slightly lighter background for contrast */
+    background-color: #333333; 
 }
 .kda-summary-inline h2 {
     font-size: 1em;
@@ -124,9 +125,10 @@ input[type="number"], input[type="date"] {
 #add-game-btn {
     width: 100%;
     padding: 10px;
-    background-color: #FFC300; /* Gold */
+    background-color: #FFC300; /* Gold Fill */
     color: #1a1a1a;
-    border: none;
+    /* NEW: Gold Outline for consistency */
+    border: 1px solid #FFC300; 
     border-radius: 6px;
     cursor: pointer;
     font-size: 16px;
@@ -160,17 +162,25 @@ input[type="number"], input[type="date"] {
     border-left: 5px solid #FFC300; /* Gold Accent */
 }
 
-.daily-score {
-    font-weight: bold;
-    flex-grow: 1; 
-    margin-right: 10px;
-}
-
 .daily-date {
     color: #aaa;
     font-size: 0.9em;
     font-weight: bold;
     width: 100px; 
+}
+
+.daily-score {
+    font-weight: bold;
+    /* FIX: Remove flex-grow to stop it from pushing everything far right */
+    flex-grow: 0; 
+    margin-right: 10px; 
+}
+
+.daily-kda-ratio {
+    /* NEW: Use margin-left: auto to push this and the action buttons to the right. */
+    margin-left: auto;
+    /* NEW: 2px gap requested between KDA count and Edit button (which is in action-buttons) */
+    margin-right: 2px;
 }
 
 /* --- ACTION BUTTON STYLES --- */
@@ -181,32 +191,33 @@ input[type="number"], input[type="date"] {
 
 .action-buttons button {
     padding: 5px 8px;
-    border: 1px solid transparent; /* Default border for consistency */
+    border: 1px solid #FFC300; /* Default Gold Border for all action buttons */
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
     font-size: 0.8em;
-    transition: background-color 0.2s, border-color 0.2s;
+    transition: background-color 0.2s, color 0.2s;
 }
 
-/* NEW: Transparent Gold Edit Button */
+/* Edit Button: Transparent Gold Outline */
 .edit-btn {
     background-color: transparent; 
-    color: #FFC300; /* Gold Text */
-    border-color: #FFC300; /* Gold Border */
+    color: #FFC300; 
 }
 .edit-btn:hover {
-    background-color: rgba(255, 195, 0, 0.1); /* Slight gold hover effect */
+    background-color: rgba(255, 195, 0, 0.1); 
     color: #FFD700;
 }
 
+/* Delete Button: Dark Theme with Gold Outline and Red Text */
 .delete-btn {
-    background-color: #e74c3c; /* Red for delete (Kept for UX) */
-    color: #f0f0f0;
-    border-color: #e74c3c;
+    background-color: #1e1e1e; /* Dark background */
+    color: #e74c3c; /* Red text for danger */
+    border-color: #FFC300; /* Gold outline */
 }
 .delete-btn:hover {
-    background-color: #c0392b;
+    background-color: #282828; /* Slightly darker on hover */
+    color: #ff7777;
 }
 
 /* Message Box (Success/Error) */
@@ -269,13 +280,14 @@ input[type="number"], input[type="date"] {
     }
 
     .daily-score {
-        /* Pushing score/kda to next line and centering it */
         margin-right: 0;
         text-align: left;
     }
     
     .daily-kda-ratio {
-        /* Ensure KDA ratio gets its own line */
+        /* On mobile, remove auto-margin and set width to stack properly */
+        margin-left: 0;
+        margin-right: 0;
         width: 100%;
     }
 
