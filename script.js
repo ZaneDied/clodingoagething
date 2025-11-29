@@ -292,23 +292,22 @@ function initializeChart() {
             },
             plugins: {
                 legend: { display: false },
-                // UPDATED: Zoom Plugin Configuration for better control
+                // UPDATED: Zoom Plugin Configuration for Vertical-Only Zoom
                 zoom: {
                     pan: {
                         enabled: true, 
-                        mode: 'xy', // Panning (click and drag) is still active
+                        mode: 'xy', // Allows users to still pan horizontally across dates
                     },
                     zoom: {
                         wheel: {
                             enabled: true, 
-                            // FIX: Require Ctrl key (or Cmd on Mac) to prevent accidental, uncontrollable zooming
                             modifierKey: 'ctrl', 
                         },
                         pinch: {
                             enabled: true 
                         },
-                        mode: 'xy', 
-                        // Ensures a controlled rate when using the pinch/touch zoom.
+                        // FIX: Change to 'y' to restrict zooming to only the vertical axis
+                        mode: 'y', 
                         sensitivity: 10,
                     },
                     limits: {
