@@ -5,7 +5,7 @@ import {
     doc,       
     getDoc,     
     setDoc,    
-    deleteDoc, // <<< NEW IMPORT
+    deleteDoc, 
     query, 
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
@@ -159,13 +159,9 @@ if (addGameBtn) {
 }
 
 // =================================================================
-// 4. NEW LOGIC: DELETE & EDIT FUNCTIONS
+// 4. LOGIC: DELETE & EDIT FUNCTIONS
 // =================================================================
 
-/**
- * Deletes a KDA entry document based on its date (which is the document ID).
- * @param {string} dateString The date of the entry to delete (YYYY-MM-DD).
- */
 const deleteKdaEntry = async (dateString) => {
     if (!confirm(`Are you sure you want to delete the daily total for ${dateString}?`)) {
         return;
@@ -183,10 +179,6 @@ const deleteKdaEntry = async (dateString) => {
     }
 };
 
-/**
- * Populates the input fields with the data from a selected daily entry.
- * @param {object} dailyData The full data object for the day (including date, totals).
- */
 const editKdaEntry = (dailyData) => {
     // 1. Move the data to the input fields for easy editing
     dateInput.value = dailyData.date;
@@ -196,7 +188,7 @@ const editKdaEntry = (dailyData) => {
 
     // 2. Change the button to indicate we are replacing/editing the total
     addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
-    addGameBtn.style.backgroundColor = '#f39c12'; // Orange color for update mode
+    addGameBtn.style.backgroundColor = '#f39c12'; 
     
     // 3. Remove the old event listener and add a temporary one for the update
     addGameBtn.removeEventListener('click', addGame);
@@ -206,10 +198,6 @@ const editKdaEntry = (dailyData) => {
 };
 
 
-/**
- * Handles the click when in "Update" mode (replaces the logGame function temporarily).
- * This function saves the new totals and resets the button state.
- */
 const handleUpdateClick = async () => {
     const gameDate = dateInput.value;
     const kills = parseInt(killsInput.value) || 0;
@@ -258,7 +246,7 @@ const handleUpdateClick = async () => {
 
 
 // =================================================================
-// 5. LISTENER & DISPLAY (Update to include buttons)
+// 5. LISTENER & DISPLAY (Fixes applied here)
 // =================================================================
 
 function updateOverallKDA(allGames) {
@@ -308,10 +296,22 @@ function startRealtimeListener() {
             const dailyData = doc.data();
             const dateString = dailyData.date || doc.id;
             
-            // Filter out random Firestore IDs
+            // Filter out random Firestore IDs (only accept YYYY-MM-DD format)
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
-                dailyData.date = dateString; 
-                allDailyData.push(dailyData);
+                
+                // --- FIX: Explicitly define and clean data fields for robustness ---
+                const kills = dailyData.totalKills || 0;
+                const deaths = dailyData.totalDeaths || 0;
+                const assists = dailyData.totalAssists || 0;
+
+                allDailyData.push({
+                    date: dateString,
+                    totalKills: kills,
+                    totalDeaths: deaths,
+                    totalAssists: assists,
+                    // Recalculate KDA if necessary, ensuring it's a number
+                    kdaRatio: dailyData.kdaRatio || parseFloat(calculateKda(kills, deaths, assists))
+                });
             }
         });
 
@@ -336,8 +336,7 @@ function startRealtimeListener() {
             gameList.appendChild(li);
         });
         
-        // <<< ATTACH EVENT LISTENERS TO NEW BUTTONS >>>
-        // We must re-attach listeners every time the list is re-rendered
+        // ATTACH EVENT LISTENERS TO NEW BUTTONS
         document.querySelectorAll('.edit-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const dateToEdit = e.target.dataset.date;
