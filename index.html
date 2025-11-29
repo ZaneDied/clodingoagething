@@ -15,6 +15,10 @@
             <div class="chart-area">
                 <h2>KDA Trend Over Time</h2>
                 <canvas id="kda-chart"></canvas>
+                
+                <div class="chart-controls">
+                    <button id="reset-zoom-btn" style="display:none;">Reset Zoom</button>
+                </div>
             </div>
 
             <div class="input-sidebar">
@@ -47,6 +51,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
     <script type="module" src="script.js"></script>
 </body>

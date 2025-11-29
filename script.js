@@ -46,10 +46,12 @@ const killsInput = document.getElementById('kills-input');
 const deathsInput = document.getElementById('deaths-input');
 const assistsInput = document.getElementById('assists-input');
 const addGameBtn = document.getElementById('add-game-btn');
-const gameList = document.getElementById('game-list'); // <--- Critical
+const gameList = document.getElementById('game-list'); 
 const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
+// NEW: Reset Zoom Button
+const resetZoomBtn = document.getElementById('reset-zoom-btn');
 
 let kdaChart; // Global variable to hold the Chart.js instance
 
@@ -246,7 +248,7 @@ const handleUpdateClick = async () => {
 
 
 // =================================================================
-// 5. LISTENER & DISPLAY (CRITICAL FIXES APPLIED HERE)
+// 5. LISTENER & DISPLAY (Zoom Logic and Empty Data Handling)
 // =================================================================
 
 function initializeChart() {
@@ -290,7 +292,29 @@ function initializeChart() {
                 }
             },
             plugins: {
-                legend: { display: false }
+                legend: { display: false },
+                // NEW: Zoom Plugin Configuration
+                zoom: {
+                    pan: {
+                        enabled: true, // Enable panning (dragging the chart)
+                        mode: 'xy', // Pan on both axes
+                    },
+                    zoom: {
+                        wheel: {
+                            enabled: true, // Enable zooming with mouse wheel
+                        },
+                        pinch: {
+                            enabled: true // Enable zooming with pinch gestures (touch devices)
+                        },
+                        mode: 'xy', // Zoom on both axes
+                    },
+                    limits: {
+                         // Optional: Set limits to prevent zooming too far out
+                         x: { minRange: 1 }, 
+                         y: { minRange: 0.1 } 
+                    }
+                }
+                // End Zoom Plugin Configuration
             }
         }
     });
@@ -329,6 +353,16 @@ function updateChart(allGames) {
 
 function startRealtimeListener() {
     initializeChart(); 
+
+    // NEW: Attach event listener for the Reset Zoom button after initialization
+    if (kdaChart && resetZoomBtn) {
+        resetZoomBtn.style.display = 'inline-block';
+        resetZoomBtn.addEventListener('click', () => {
+            if (kdaChart) {
+                kdaChart.resetZoom();
+            }
+        });
+    }
     
     const path = getCollectionPath();
     const gamesCollectionRef = collection(db, path);
@@ -371,6 +405,16 @@ function startRealtimeListener() {
         // Sort data for display (most recent first)
         const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
         
+        // FIX FOR EMPTY DATA DISPLAY 
+        if (sortedDisplayData.length === 0) {
+            const li = document.createElement('li');
+            li.textContent = "No games logged yet. Add your first game to see your history and graph!";
+            li.style.textAlign = 'center';
+            li.style.backgroundColor = '#444';
+            li.style.borderLeft = '5px solid #f39c12'; 
+            gameList.appendChild(li);
+        }
+
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.totalKills}/${dailyData.totalDeaths}/${dailyData.totalAssists}`;
             const kdaRatioText = `KDA: ${calculateKda(dailyData.totalKills, dailyData.totalDeaths, dailyData.totalAssists)}`;

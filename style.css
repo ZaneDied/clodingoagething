@@ -47,6 +47,25 @@ h1 {
     height: 300px; 
 }
 
+/* NEW: Style for the zoom reset button container */
+.chart-controls {
+    text-align: right;
+    margin-top: 10px;
+}
+#reset-zoom-btn {
+    padding: 5px 10px;
+    background-color: #555;
+    color: #f0f0f0;
+    border: 1px solid #777;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8em;
+    transition: background-color 0.2s;
+}
+#reset-zoom-btn:hover {
+    background-color: #777;
+}
+
 .input-sidebar {
     flex: 1; 
     background-color: #333;
