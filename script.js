@@ -5,6 +5,7 @@ import {
     doc,       
     getDoc,     
     setDoc,    
+    deleteDoc, // <<< NEW IMPORT
     query, 
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
@@ -70,7 +71,6 @@ function displayMessage(message, type) {
 // Utility function to format KDA (Kills + Assists) / Deaths
 function calculateKda(kills, deaths, assists) {
     if (deaths === 0) {
-        // If 0 deaths, return K+A, but limit to two decimal places for consistency
         return (kills + assists).toFixed(2);
     }
     return ((kills + assists) / deaths).toFixed(2);
@@ -85,9 +85,8 @@ const getCollectionPath = () => {
 function setInitialDate() {
     const today = new Date();
     
-    // Format as YYYY-MM-DD which is required by <input type="date">
     const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const month = String(today.getMonth() + 1).padStart(2, '0'); 
     const day = String(today.getDate()).padStart(2, '0');
     
     const formattedDate = `${year}-${month}-${day}`;
@@ -114,7 +113,6 @@ const addGame = async () => {
     }
 
     const path = getCollectionPath();
-    // Document ID is the date string (e.g., '2025-11-29')
     const docRef = doc(db, path, gameDate); 
     
     try {
@@ -161,59 +159,106 @@ if (addGameBtn) {
 }
 
 // =================================================================
-// 4. LOGIC: CHART INITIALIZATION
+// 4. NEW LOGIC: DELETE & EDIT FUNCTIONS
 // =================================================================
 
-function initializeChart() {
-    const canvasElement = document.getElementById('kda-chart');
-    if (!canvasElement) return;
-
-    const ctx = canvasElement.getContext('2d');
-    
-    if (kdaChart) {
-        kdaChart.destroy();
+/**
+ * Deletes a KDA entry document based on its date (which is the document ID).
+ * @param {string} dateString The date of the entry to delete (YYYY-MM-DD).
+ */
+const deleteKdaEntry = async (dateString) => {
+    if (!confirm(`Are you sure you want to delete the daily total for ${dateString}?`)) {
+        return;
     }
     
-    kdaChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [], 
-            datasets: [{
-                label: 'KDA Ratio',
-                data: [], 
-                borderColor: '#79d7d7',
-                backgroundColor: 'rgba(121, 215, 215, 0.2)',
-                borderWidth: 2,
-                tension: 0.4,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false, 
-            scales: {
-                x: {
-                    title: { display: true, text: 'Date', color: '#f0f0f0' },
-                    ticks: { color: '#f0f0f0' },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                },
-                y: {
-                    title: { display: true, text: 'KDA', color: '#f0f0f0' },
-                    ticks: { color: '#f0f0f0', beginAtZero: true },
-                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                }
-            },
-            plugins: {
-                legend: { display: false }
-            }
-        }
-    });
-}
+    const path = getCollectionPath();
+    const docRef = doc(db, path, dateString);
+    
+    try {
+        await deleteDoc(docRef);
+        displayMessage(`Successfully deleted entry for ${dateString}.`, 'success');
+    } catch (error) {
+        console.error("ERROR: Could not delete document.", error);
+        displayMessage(`ERROR: Could not delete entry: ${error.message}`, 'error');
+    }
+};
+
+/**
+ * Populates the input fields with the data from a selected daily entry.
+ * @param {object} dailyData The full data object for the day (including date, totals).
+ */
+const editKdaEntry = (dailyData) => {
+    // 1. Move the data to the input fields for easy editing
+    dateInput.value = dailyData.date;
+    killsInput.value = dailyData.totalKills;
+    deathsInput.value = dailyData.totalDeaths;
+    assistsInput.value = dailyData.totalAssists;
+
+    // 2. Change the button to indicate we are replacing/editing the total
+    addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
+    addGameBtn.style.backgroundColor = '#f39c12'; // Orange color for update mode
+    
+    // 3. Remove the old event listener and add a temporary one for the update
+    addGameBtn.removeEventListener('click', addGame);
+    addGameBtn.addEventListener('click', handleUpdateClick);
+    
+    displayMessage(`Ready to edit/replace daily total for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
+};
+
+
+/**
+ * Handles the click when in "Update" mode (replaces the logGame function temporarily).
+ * This function saves the new totals and resets the button state.
+ */
+const handleUpdateClick = async () => {
+    const gameDate = dateInput.value;
+    const kills = parseInt(killsInput.value) || 0;
+    const deaths = parseInt(deathsInput.value) || 0;
+    const assists = parseInt(assistsInput.value) || 0;
+    
+    if (!gameDate || kills < 0 || deaths < 0 || assists < 0) {
+        displayMessage("Please enter a valid date and positive KDA scores.", 'error');
+        return;
+    }
+
+    const path = getCollectionPath();
+    const docRef = doc(db, path, gameDate); 
+    
+    try {
+        const newKdaRatio = parseFloat(calculateKda(kills, deaths, assists));
+        
+        // Use setDoc without merge to COMPLETELY OVERWRITE the daily total
+        await setDoc(docRef, {
+            date: gameDate, 
+            totalKills: kills,
+            totalDeaths: deaths,
+            totalAssists: assists,
+            kdaRatio: newKdaRatio
+        });
+        
+        displayMessage(`Successfully updated daily total for ${gameDate}.`, 'success');
+        
+        // Reset the input fields and button state
+        killsInput.value = '';
+        deathsInput.value = '';
+        assistsInput.value = '';
+        addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
+        addGameBtn.style.backgroundColor = '#79d7d7';
+        
+        // Restore the original event listener (for aggregation)
+        addGameBtn.removeEventListener('click', handleUpdateClick);
+        addGameBtn.addEventListener('click', addGame);
+
+
+    } catch (error) {
+        console.error("ERROR: Could not update document.", error);
+        displayMessage(`ERROR: Could not update entry: ${error.message}`, 'error');
+    }
+};
 
 
 // =================================================================
-// 5. LOGIC: REAL-TIME LISTENER & DISPLAY
+// 5. LISTENER & DISPLAY (Update to include buttons)
 // =================================================================
 
 function updateOverallKDA(allGames) {
@@ -227,7 +272,6 @@ function updateOverallKDA(allGames) {
         careerAssists += dailyData.totalAssists;
     });
 
-    // --- FIX 1: Handle NaN (when all totals are zero) ---
     if (careerKills + careerAssists === 0 && careerDeaths === 0) {
         overallKdaDisplay.textContent = '0.00';
     } else {
@@ -239,7 +283,6 @@ function updateOverallKDA(allGames) {
 function updateChart(allGames) {
     if (!kdaChart) return;
     
-    // Sort games by date string for chronological plotting
     const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
     kdaChart.data.labels = sortedGames.map(game => game.date);
@@ -254,8 +297,7 @@ function startRealtimeListener() {
     const path = getCollectionPath();
     const gamesCollectionRef = collection(db, path);
     const gamesQuery = query(gamesCollectionRef); 
-    console.log(`Starting real-time listener on KDA path: ${path}`);
-
+    
     onSnapshot(gamesQuery, (snapshot) => {
         if (!gameList) return; 
 
@@ -264,17 +306,12 @@ function startRealtimeListener() {
 
         snapshot.forEach((doc) => {
             const dailyData = doc.data();
-            
-            // The document ID is the date (YYYY-MM-DD), but we use the stored 'date' field for safety
             const dateString = dailyData.date || doc.id;
             
-            // --- FIX 2: Filter out jumbled random Firestore IDs ---
-            // A valid date (YYYY-MM-DD) is always 10 characters and contains hyphens
+            // Filter out random Firestore IDs
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 dailyData.date = dateString; 
                 allDailyData.push(dailyData);
-            } else {
-                console.warn(`Skipping document with invalid date format: ${dateString}`);
             }
         });
 
@@ -290,15 +327,36 @@ function startRealtimeListener() {
                 <span class="daily-date">${dailyData.date}</span>
                 <span class="daily-score">Total Scores: ${scoreText}</span>
                 <span class="daily-kda-ratio">${kdaRatioText}</span>
+                
+                <div class="action-buttons">
+                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                </div>
             `; 
             gameList.appendChild(li);
         });
-
-
+        
+        // <<< ATTACH EVENT LISTENERS TO NEW BUTTONS >>>
+        // We must re-attach listeners every time the list is re-rendered
+        document.querySelectorAll('.edit-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const dateToEdit = e.target.dataset.date;
+                const dataToEdit = allDailyData.find(d => d.date === dateToEdit);
+                if (dataToEdit) {
+                    editKdaEntry(dataToEdit);
+                }
+            });
+        });
+        
+        document.querySelectorAll('.delete-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                deleteKdaEntry(e.target.dataset.date);
+            });
+        });
+        
+        // Update the overall summary and the graph
         updateOverallKDA(allDailyData);
         updateChart(allDailyData); 
-        
-        console.log(`SUCCESS: Daily KDA History updated. Total days: ${snapshot.size}`);
 
     }, (error) => {
         console.error("FATAL ERROR: Real-time listener failed to sync.", error);
@@ -307,8 +365,6 @@ function startRealtimeListener() {
 }
 
 
-// 1. Set the date input to today's date
+// Start the application
 setInitialDate();
-
-// 2. Start the data listener
 startRealtimeListener();

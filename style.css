@@ -56,19 +56,25 @@ h1 {
     gap: 10px; 
 }
 
-/* --- KDA Summary INLINE (New Location) --- */
+/* --- KDA Summary INLINE --- */
 .kda-summary-inline {
     text-align: center;
     padding: 8px; 
     border-radius: 8px;
-    margin-bottom: 10px; /* Separates it from Log Game title */
+    margin-bottom: 10px; 
     background-color: #444;
 }
 .kda-summary-inline h2 {
     font-size: 1em;
     margin: 0 0 5px 0;
 }
-/* REMOVED: Old .kda-summary styles */
+
+#overall-kda {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #f0f0f0;
+    margin: 5px 0;
+}
 
 
 /* Input Elements */
@@ -80,25 +86,6 @@ input[type="number"], input[type="date"] {
     background-color: #444;
     color: #f0f0f0;
     box-sizing: border-box;
-}
-
-input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.kda-inputs {
-    display: flex;
-    gap: 10px;
-}
-
-.kda-inputs input[type="number"] {
-    width: 33.33%;
 }
 
 /* Log Game Button */
@@ -117,14 +104,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 #add-game-btn:hover {
     background-color: #5bbaba;
-}
-
-
-#overall-kda {
-    font-size: 1.5em;
-    font-weight: bold;
-    color: #f0f0f0;
-    margin: 5px 0;
 }
 
 /* Game History List */
@@ -151,6 +130,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .daily-score {
     font-weight: bold;
     flex-grow: 1; 
+    margin-right: 10px;
 }
 
 .daily-date {
@@ -158,6 +138,38 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     font-size: 0.9em;
     font-weight: bold;
     width: 100px; 
+}
+
+/* --- ACTION BUTTON STYLES (NEW) --- */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+}
+
+.action-buttons button {
+    padding: 5px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.8em;
+    transition: background-color 0.2s;
+}
+
+.edit-btn {
+    background-color: #f39c12; /* Orange for edit */
+    color: #1a1a1a;
+}
+.edit-btn:hover {
+    background-color: #e67e22;
+}
+
+.delete-btn {
+    background-color: #e74c3c; /* Red for delete */
+    color: #f0f0f0;
+}
+.delete-btn:hover {
+    background-color: #c0392b;
 }
 
 /* Message Box (Success/Error) */
