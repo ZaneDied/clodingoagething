@@ -3,56 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Universal KDA Tracker</title>
-    <link rel="stylesheet" href="style.css"> 
+    <!-- Updated Title to "Restaurant" -->
+    <title>Restaurant</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Required Chart.js Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>Real-Time KDA Tracker</h1>
-        <p class="user-info-note">Shared Billboard ID: <span id="user-id-display">PUBLIC</span></p>
         
+        <!-- NEW: Mode Selector Buttons -->
+        <div class="mode-selector">
+            <button id="mode-restaurant-btn" class="mode-btn active">Restaurant</button>
+            <button id="mode-chef-btn" class="mode-btn">Chef</button>
+        </div>
+        
+        <!-- Main Content Title -->
+        <h1>Performance Log</h1>
+
+        <p class="user-info-note">Your ID: <span id="user-id-display">PUBLIC</span></p>
+
+        <!-- KDA Summary Area -->
+        <div class="kda-summary-inline">
+            <h2>Overall Career KDA (K+A/D)</h2>
+            <div id="overall-kda">0.00</div>
+        </div>
+        
+        <div id="message-box" class="message-box"></div>
+
         <div class="main-content">
+            <!-- Chart Area -->
             <div class="chart-area">
-                <h2>KDA Trend Over Time</h2>
                 <canvas id="kda-chart"></canvas>
-                
                 <div class="chart-controls">
-                    <button id="reset-zoom-btn" style="display:none;">Reset Zoom</button>
+                    <button id="reset-zoom-btn" style="display: none;">Reset Zoom</button>
                 </div>
             </div>
 
+            <!-- Input Sidebar -->
             <div class="input-sidebar">
-                <div class="kda-summary-inline">
-                    <h2>Overall Career KDA:</h2>
-                    <p id="overall-kda">--</p>
+                <label for="date-input">Game Date</label>
+                <input type="date" id="date-input">
+
+                <div class="kda-inputs">
+                    <input type="number" id="kills-input" placeholder="Kills" min="0">
+                    <input type="number" id="deaths-input" placeholder="Deaths" min="0">
+                    <input type="number" id="assists-input" placeholder="Assists" min="0">
                 </div>
 
-                <h2>Log Game(s) for Day:</h2>
-                
-                <div class="input-group">
-                    <label for="date-input">Game Date:</label>
-                    <input type="date" id="date-input">
-                </div>
-                
-                <div class="kda-inputs">
-                    <input type="number" id="kills-input" placeholder="Kills (K)" min="0">
-                    <input type="number" id="deaths-input" placeholder="Deaths (D)" min="0">
-                    <input type="number" id="assists-input" placeholder="Assists (A)" min="0">
-                </div>
-                
                 <button id="add-game-btn">Log Game (Aggregates to Daily Total)</button>
-                <div id="message-box" class="message-box"></div>
             </div>
         </div>
 
-        <h2 class="history-header">Daily KDA History:</h2>
+        <h2 class="history-header">Game History</h2>
         <ul id="game-list">
-            </ul>
+            <li>Loading history...</li>
+        </ul>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
 
     <script type="module" src="script.js"></script>
 </body>

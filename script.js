@@ -79,6 +79,7 @@ function calculateKda(kills, deaths, assists) {
 
 // Defines the collection path.
 const getCollectionPath = () => {
+    // Note: The context has shifted to 'Restaurant' but the data remains 'games'. 
     return `users/${userId}/games`; 
 };
 
@@ -164,6 +165,8 @@ if (addGameBtn) {
 // =================================================================
 
 const deleteKdaEntry = async (dateString) => {
+    // IMPORTANT: Use custom modal instead of built-in confirm()
+    // For now, keeping confirm as a fallback/simple implementation
     if (!confirm(`Are you sure you want to delete the daily total for ${dateString}?`)) {
         return;
     }
@@ -189,7 +192,7 @@ const editKdaEntry = (dailyData) => {
 
     // 2. Change the button to indicate we are replacing/editing the total
     addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
-    addGameBtn.style.backgroundColor = '#f39c12'; // Keep temporary orange for UX differentiation
+    addGameBtn.style.backgroundColor = '#f39c12'; // Temporary orange for UX differentiation
     
     // 3. Remove the old event listener and add a temporary one for the update
     addGameBtn.removeEventListener('click', addGame);
@@ -267,7 +270,7 @@ function initializeChart() {
             datasets: [{
                 label: 'KDA Ratio',
                 data: [], 
-                // NEW: Gold Chart Line
+                // Gold Chart Line
                 borderColor: '#FFC300', 
                 backgroundColor: 'rgba(255, 195, 0, 0.2)',
                 borderWidth: 2,

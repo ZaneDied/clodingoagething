@@ -21,11 +21,46 @@ body {
     margin-top: 30px; 
 }
 
+/* NEW: Mode Selector Styling */
+.mode-selector {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #333;
+}
+
+.mode-btn {
+    padding: 8px 15px;
+    background-color: transparent;
+    color: #FFC300; /* Gold text */
+    border: none;
+    border-bottom: 2px solid transparent; /* Default state */
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+.mode-btn:hover {
+    color: #FFD700;
+    border-bottom: 2px solid #444;
+}
+
+.mode-btn.active {
+    border-bottom: 2px solid #FFC300; /* Active Gold underline */
+    color: #FFD700;
+}
+
+
 h1 {
     color: #FFC300; /* Gold */
     border-bottom: 2px solid #FFC300; /* Gold Accent */
     padding-bottom: 10px;
     margin-top: 0;
+}
+
+h2 {
+    color: #f0f0f0;
 }
 
 .user-info-note {
@@ -58,7 +93,7 @@ h1 {
     padding: 5px 10px;
     background-color: #333;
     color: #FFC300; 
-    /* NEW: Gold Outline */
+    /* Gold Outline */
     border: 1px solid #FFC300; 
     border-radius: 4px;
     cursor: pointer;
@@ -127,7 +162,7 @@ input[type="number"], input[type="date"] {
     padding: 10px;
     background-color: #FFC300; /* Gold Fill */
     color: #1a1a1a;
-    /* NEW: Gold Outline for consistency */
+    /* Gold Outline for consistency */
     border: 1px solid #FFC300; 
     border-radius: 6px;
     cursor: pointer;
@@ -171,16 +206,14 @@ input[type="number"], input[type="date"] {
 
 .daily-score {
     font-weight: bold;
-    /* FIX: Remove flex-grow to stop it from pushing everything far right */
     flex-grow: 0; 
     margin-right: 10px; 
 }
 
 .daily-kda-ratio {
-    /* NEW: Use margin-left: auto to push this and the action buttons to the right. */
     margin-left: auto;
-    /* NEW: 2px gap requested between KDA count and Edit button (which is in action-buttons) */
-    margin-right: 2px;
+    /* 2px gap requested between KDA count and Edit button (which is in action-buttons) */
+    margin-right: 2px; 
 }
 
 /* --- ACTION BUTTON STYLES --- */
@@ -191,7 +224,8 @@ input[type="number"], input[type="date"] {
 
 .action-buttons button {
     padding: 5px 8px;
-    border: 1px solid #FFC300; /* Default Gold Border for all action buttons */
+    /* Gold Border for all action buttons */
+    border: 1px solid #FFC300; 
     border-radius: 4px;
     cursor: pointer;
     font-weight: bold;
@@ -256,15 +290,15 @@ input[type="number"], input[type="date"] {
         gap: 15px; 
     }
     .chart-area, .input-sidebar {
-        flex: none; /* Reset flex ratios */
+        flex: none; 
         width: 100%;
-        height: auto; /* Allow chart to adjust height */
+        height: auto; 
     }
 
     /* KDA Inputs: Stack vertically for easier tapping */
     .kda-inputs {
         flex-direction: column;
-        gap: 10px; /* Increase gap for separation */
+        gap: 10px; 
     }
     
     /* HISTORY LIST: Stack content vertically for readability */
@@ -285,14 +319,12 @@ input[type="number"], input[type="date"] {
     }
     
     .daily-kda-ratio {
-        /* On mobile, remove auto-margin and set width to stack properly */
         margin-left: 0;
         margin-right: 0;
         width: 100%;
     }
 
     .action-buttons {
-        /* Ensure buttons stay at the bottom of the list item */
         margin-top: 8px;
         align-self: flex-end;
     }
