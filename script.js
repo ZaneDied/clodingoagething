@@ -46,7 +46,7 @@ const killsInput = document.getElementById('kills-input');
 const deathsInput = document.getElementById('deaths-input');
 const assistsInput = document.getElementById('assists-input');
 const addGameBtn = document.getElementById('add-game-btn');
-const gameList = document.getElementById('game-list');
+const gameList = document.getElementById('game-list'); // <--- Critical
 const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
@@ -123,7 +123,6 @@ const addGame = async () => {
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Use parseInt to handle potential stringified numbers from older data
             existingKills = parseInt(data.totalKills) || 0;
             existingDeaths = parseInt(data.totalDeaths) || 0;
             existingAssists = parseInt(data.totalAssists) || 0;
@@ -250,6 +249,54 @@ const handleUpdateClick = async () => {
 // 5. LISTENER & DISPLAY (CRITICAL FIXES APPLIED HERE)
 // =================================================================
 
+function initializeChart() {
+    const canvasElement = document.getElementById('kda-chart');
+    if (!canvasElement) return;
+
+    const ctx = canvasElement.getContext('2d');
+    
+    if (kdaChart) {
+        kdaChart.destroy();
+    }
+    
+    kdaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], 
+            datasets: [{
+                label: 'KDA Ratio',
+                data: [], 
+                borderColor: '#79d7d7',
+                backgroundColor: 'rgba(121, 215, 215, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false, 
+            scales: {
+                x: {
+                    title: { display: true, text: 'Date', color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                y: {
+                    title: { display: true, text: 'KDA', color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0', beginAtZero: true },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+
 function updateOverallKDA(allGames) {
     let careerKills = 0;
     let careerDeaths = 0;
@@ -300,7 +347,7 @@ function startRealtimeListener() {
             // Filter out random Firestore IDs (only accept YYYY-MM-DD format)
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 
-                // --- CRITICAL FIX: Explicitly convert to number for all fields ---
+                // CRITICAL FIX: Explicitly convert to number for all fields to prevent crashes
                 const kills = parseInt(dailyData.totalKills) || 0;
                 const deaths = parseInt(dailyData.totalDeaths) || 0;
                 const assists = parseInt(dailyData.totalAssists) || 0;
