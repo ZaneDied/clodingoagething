@@ -155,7 +155,17 @@ if (addGameBtn) {
 // =================================================================
 
 function initializeChart() {
-    const ctx = document.getElementById('kda-chart').getContext('2d');
+    // The canvas element must exist for this to work
+    const canvasElement = document.getElementById('kda-chart');
+    if (!canvasElement) return;
+
+    const ctx = canvasElement.getContext('2d');
+    
+    // Destroy existing chart instance if it exists to prevent Chart.js errors
+    if (kdaChart) {
+        kdaChart.destroy();
+    }
+    
     kdaChart = new Chart(ctx, {
         type: 'line',
         data: {
@@ -173,7 +183,7 @@ function initializeChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: false, // Allows chart to fill the container defined in CSS
             scales: {
                 x: {
                     title: { display: true, text: 'Date', color: '#f0f0f0' },
