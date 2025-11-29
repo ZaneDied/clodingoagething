@@ -16,13 +16,13 @@
                 <h2>KDA Trend Over Time</h2>
                 <canvas id="kda-chart"></canvas>
                 <div class="kda-summary">
-                    <h2>Overall KDA:</h2>
+                    <h2>Overall Career KDA:</h2>
                     <p id="overall-kda">--</p>
                 </div>
             </div>
 
             <div class="input-sidebar">
-                <h2>Log a Game:</h2>
+                <h2>Log Game(s) for Day:</h2>
                 
                 <div class="input-group">
                     <label for="date-input">Game Date:</label>
@@ -35,12 +35,12 @@
                     <input type="number" id="assists-input" placeholder="Assists (A)" min="0">
                 </div>
                 
-                <button id="add-game-btn">Log Game</button>
+                <button id="add-game-btn">Log Game (Aggregates to Daily Total)</button>
                 <div id="message-box" class="message-box"></div>
             </div>
         </div>
 
-        <h2 class="history-header">Game History:</h2>
+        <h2 class="history-header">Daily KDA History:</h2>
         <ul id="game-list">
             </ul>
     </div>

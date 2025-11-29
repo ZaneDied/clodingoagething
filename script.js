@@ -1,11 +1,19 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+import { 
+    getFirestore, 
+    collection, 
+    doc,        // Required to reference a specific document by date
+    getDoc,     // Required to read the existing daily total
+    setDoc,     // Required to create/update the daily total
+    query, 
+    onSnapshot 
+} from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 // Global variables provided by the environment (if running in a special environment)
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 
 // =================================================================
-// 1. FIREBASE CONFIGURATION (Use your provided config)
+// 1. FIREBASE CONFIGURATION & INITIALIZATION
 // =================================================================
 
 const userProvidedConfig = {
@@ -22,12 +30,11 @@ const activeConfig = {
     ...firebaseConfig 
 }; 
 
-// Initialize Firebase App and Services
 const app = initializeApp(activeConfig);
 const db = getFirestore(app);
 
-// Set fixed, public ID for the universal billboard
-const userId = 'PUBLIC'; // Matches the /users/PUBLIC/games/{gameId} rule
+// Public ID for universal access (matches your published rules)
+const userId = 'PUBLIC'; 
 
 // =================================================================
 // 2. UI Elements and Utilities
@@ -62,82 +69,21 @@ function displayMessage(message, type) {
 
 // Utility function to format KDA (Kills + Assists) / Deaths
 function calculateKda(kills, deaths, assists) {
-    // Prevent division by zero: if deaths is 0, return K+A as the ratio
     if (deaths === 0) {
+        // If 0 deaths, return K+A, but limit to two decimal places for consistency
         return (kills + assists).toFixed(2);
     }
     return ((kills + assists) / deaths).toFixed(2);
 }
 
-// Defines the collection path for the public KDA billboard
+// Defines the collection path. Documents in this collection are identified by the DATE string.
 const getCollectionPath = () => {
-    // Path: /users/PUBLIC/games
     return `users/${userId}/games`; 
 };
 
 
 // =================================================================
-// 3. LOGIC: CHART INITIALIZATION
-// =================================================================
-
-function initializeChart() {
-    const ctx = document.getElementById('kda-chart').getContext('2d');
-    kdaChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [], // Dates will go here
-            datasets: [{
-                label: 'KDA Ratio',
-                data: [], // KDA values will go here
-                borderColor: '#79d7d7',
-                backgroundColor: 'rgba(121, 215, 215, 0.2)',
-                borderWidth: 2,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Date',
-                        color: '#f0f0f0'
-                    },
-                    ticks: {
-                        color: '#f0f0f0'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'KDA',
-                        color: '#f0f0f0'
-                    },
-                    ticks: {
-                        color: '#f0f0f0'
-                    },
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    }
-                }
-            },
-            plugins: {
-                legend: {
-                    display: false
-                }
-            }
-        }
-    });
-}
-
-
-// =================================================================
-// 4. LOGIC: ADDING A GAME
+// 3. LOGIC: ADDING AND AGGREGATING A GAME
 // =================================================================
 
 const addGame = async () => {
@@ -146,27 +92,50 @@ const addGame = async () => {
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
     
+    // Simple validation
     if (!gameDate || kills < 0 || deaths < 0 || assists < 0) {
         displayMessage("Please enter a valid date and positive KDA scores.", 'error');
         return;
     }
 
     const path = getCollectionPath();
-    const kdaRatio = calculateKda(kills, deaths, assists);
+    // Use the date as the document ID for daily aggregation
+    const docRef = doc(db, path, gameDate); 
     
     try {
-        await addDoc(collection(db, path), {
-            date: gameDate, // Save the user-provided date
-            kills: kills,
-            deaths: deaths,
-            assists: assists,
-            kdaRatio: parseFloat(kdaRatio),
-            timestamp: serverTimestamp() 
-        });
+        // 1. Fetch existing data for this date
+        const docSnap = await getDoc(docRef);
+        let existingKills = 0;
+        let existingDeaths = 0;
+        let existingAssists = 0;
         
-        displayMessage(`Game logged! KDA: ${kdaRatio}`, 'success');
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            existingKills = data.totalKills || 0;
+            existingDeaths = data.totalDeaths || 0;
+            existingAssists = data.totalAssists || 0;
+        }
+
+        // 2. Calculate NEW totals for the day
+        const newTotalKills = existingKills + kills;
+        const newTotalDeaths = existingDeaths + deaths;
+        const newTotalAssists = existingAssists + assists;
         
-        // Clear inputs after success
+        const newKdaRatio = parseFloat(calculateKda(newTotalKills, newTotalDeaths, newTotalAssists));
+
+        // 3. Update the document for the selected date
+        await setDoc(docRef, {
+            date: gameDate, // Store the date for clarity (redundant with doc ID, but helpful)
+            totalKills: newTotalKills,
+            totalDeaths: newTotalDeaths,
+            totalAssists: newTotalAssists,
+            kdaRatio: newKdaRatio
+        }, { merge: true }); // Crucial: merges with existing data or creates new if it doesn't exist
+        
+        const gameKda = calculateKda(kills, deaths, assists);
+        displayMessage(`Game Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
+        
+        // Clear KDA inputs after success (keep date input)
         killsInput.value = '';
         deathsInput.value = '';
         assistsInput.value = '';
@@ -182,35 +151,76 @@ if (addGameBtn) {
 }
 
 // =================================================================
+// 4. LOGIC: CHART INITIALIZATION
+// =================================================================
+
+function initializeChart() {
+    const ctx = document.getElementById('kda-chart').getContext('2d');
+    kdaChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], 
+            datasets: [{
+                label: 'KDA Ratio',
+                data: [], 
+                borderColor: '#79d7d7',
+                backgroundColor: 'rgba(121, 215, 215, 0.2)',
+                borderWidth: 2,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    title: { display: true, text: 'Date', color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0' },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                },
+                y: {
+                    title: { display: true, text: 'KDA', color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0', beginAtZero: true },
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' }
+                }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+}
+
+
+// =================================================================
 // 5. LOGIC: REAL-TIME LISTENER & DISPLAY
 // =================================================================
 
 function updateOverallKDA(allGames) {
-    let totalKills = 0;
-    let totalDeaths = 0;
-    let totalAssists = 0;
+    let careerKills = 0;
+    let careerDeaths = 0;
+    let careerAssists = 0;
 
-    allGames.forEach(game => {
-        totalKills += game.kills;
-        totalDeaths += game.deaths;
-        totalAssists += game.assists;
+    allGames.forEach(dailyData => {
+        careerKills += dailyData.totalKills;
+        careerDeaths += dailyData.totalDeaths;
+        careerAssists += dailyData.totalAssists;
     });
 
-    const overallKda = calculateKda(totalKills, totalDeaths, totalAssists);
+    // Calculate career KDA from the grand totals
+    const overallKda = calculateKda(careerKills, careerDeaths, careerAssists);
     overallKdaDisplay.textContent = overallKda;
-    
-    return { totalKills, totalDeaths, totalAssists };
 }
 
 function updateChart(allGames) {
     if (!kdaChart) return;
     
-    // Sort games by date before plotting
-    const sortedGames = allGames.sort((a, b) => {
-        // Simple string comparison works for YYYY-MM-DD format
-        return a.date.localeCompare(b.date); 
-    });
+    // Sort documents by their ID (the date string) for chronological plotting
+    const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
+    // Update chart data
     kdaChart.data.labels = sortedGames.map(game => game.date);
     kdaChart.data.datasets[0].data = sortedGames.map(game => game.kdaRatio);
     kdaChart.update();
@@ -224,41 +234,49 @@ function startRealtimeListener() {
     const path = getCollectionPath();
     const gamesCollectionRef = collection(db, path);
     
-    // Order by timestamp to show the newest games first in the list
-    const gamesQuery = query(gamesCollectionRef, orderBy("timestamp", "desc"));
+    // No orderBy needed in the query, we sort the results in JavaScript
+    const gamesQuery = query(gamesCollectionRef); 
     console.log(`Starting real-time listener on KDA path: ${path}`);
 
     onSnapshot(gamesQuery, (snapshot) => {
         if (!gameList) return; 
 
-        const allGames = [];
+        const allDailyData = [];
         gameList.innerHTML = ''; 
 
         snapshot.forEach((doc) => {
-            const game = doc.data();
-            // Ensure the date field exists before adding to allGames
-            if (game.date) {
-                allGames.push(game);
-            }
+            const dailyData = doc.data();
             
-            const scoreText = `${game.kills}/${game.deaths}/${game.assists}`;
-            const kdaRatioText = `KDA: ${calculateKda(game.kills, game.deaths, game.assists)}`;
-            const dateText = game.date ? game.date : 'No Date';
+            // The document ID is the date, so we can ensure it has one
+            if (doc.id) { 
+                // Store the date and daily totals
+                dailyData.date = doc.id; 
+                allDailyData.push(dailyData);
+            }
+        });
 
+        // Sort data for display (most recent first)
+        const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
+        
+        sortedDisplayData.forEach(dailyData => {
+            const scoreText = `${dailyData.totalKills}/${dailyData.totalDeaths}/${dailyData.totalAssists}`;
+            const kdaRatioText = `KDA: ${calculateKda(dailyData.totalKills, dailyData.totalDeaths, dailyData.totalAssists)}`;
+            
             const li = document.createElement('li');
             li.innerHTML = `
-                <span class="game-date">${dateText}</span>
-                <span class="game-score">${scoreText}</span>
-                <span class="game-kda-ratio">${kdaRatioText}</span>
+                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-score">Total Scores: ${scoreText}</span>
+                <span class="daily-kda-ratio">${kdaRatioText}</span>
             `; 
             gameList.appendChild(li);
         });
 
+
         // Update the overall summary and the graph
-        updateOverallKDA(allGames);
-        updateChart(allGames); 
+        updateOverallKDA(allDailyData);
+        updateChart(allDailyData); 
         
-        console.log(`SUCCESS: KDA History updated. Total games: ${snapshot.size}`);
+        console.log(`SUCCESS: Daily KDA History updated. Total days: ${snapshot.size}`);
 
     }, (error) => {
         console.error("FATAL ERROR: Real-time listener failed to sync.", error);
@@ -267,5 +285,5 @@ function startRealtimeListener() {
 }
 
 
-// Start the listener immediately since no authentication is required.
+// Start the listener immediately
 startRealtimeListener();
