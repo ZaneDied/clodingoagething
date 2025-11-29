@@ -2,9 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebas
 import { 
     getFirestore, 
     collection, 
-    doc,        // Required to reference a specific document by date
-    getDoc,     // Required to read the existing daily total
-    setDoc,     // Required to create/update the daily total
+    doc,       
+    getDoc,     
+    setDoc,    
     query, 
     onSnapshot 
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
@@ -70,16 +70,31 @@ function displayMessage(message, type) {
 // Utility function to format KDA (Kills + Assists) / Deaths
 function calculateKda(kills, deaths, assists) {
     if (deaths === 0) {
-        // If 0 deaths, return K+A, but limit to two decimal places for consistency
         return (kills + assists).toFixed(2);
     }
     return ((kills + assists) / deaths).toFixed(2);
 }
 
-// Defines the collection path. Documents in this collection are identified by the DATE string.
+// Defines the collection path.
 const getCollectionPath = () => {
     return `users/${userId}/games`; 
 };
+
+// --- NEW FUNCTION: Set the date input to today's date ---
+function setInitialDate() {
+    const today = new Date();
+    
+    // Format as YYYY-MM-DD which is required by <input type="date">
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0'); // Months are 0-indexed
+    const day = String(today.getDate()).padStart(2, '0');
+    
+    const formattedDate = `${year}-${month}-${day}`;
+    
+    if (dateInput) {
+        dateInput.value = formattedDate;
+    }
+}
 
 
 // =================================================================
@@ -92,18 +107,15 @@ const addGame = async () => {
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
     
-    // Simple validation
     if (!gameDate || kills < 0 || deaths < 0 || assists < 0) {
         displayMessage("Please enter a valid date and positive KDA scores.", 'error');
         return;
     }
 
     const path = getCollectionPath();
-    // Use the date as the document ID for daily aggregation
     const docRef = doc(db, path, gameDate); 
     
     try {
-        // 1. Fetch existing data for this date
         const docSnap = await getDoc(docRef);
         let existingKills = 0;
         let existingDeaths = 0;
@@ -116,23 +128,20 @@ const addGame = async () => {
             existingAssists = data.totalAssists || 0;
         }
 
-        // 2. Calculate NEW totals for the day
         const newTotalKills = existingKills + kills;
         const newTotalDeaths = existingDeaths + deaths;
         const newTotalAssists = existingAssists + assists;
         
         const newKdaRatio = parseFloat(calculateKda(newTotalKills, newTotalDeaths, newTotalAssists));
 
-        // 3. Update the document for the selected date
         await setDoc(docRef, {
-            date: gameDate, // Store the date for clarity (redundant with doc ID, but helpful)
+            date: gameDate, 
             totalKills: newTotalKills,
             totalDeaths: newTotalDeaths,
             totalAssists: newTotalAssists,
             kdaRatio: newKdaRatio
-        }, { merge: true }); // Crucial: merges with existing data or creates new if it doesn't exist
+        }, { merge: true }); 
         
-        const gameKda = calculateKda(kills, deaths, assists);
         displayMessage(`Game Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
         
         // Clear KDA inputs after success (keep date input)
@@ -155,13 +164,11 @@ if (addGameBtn) {
 // =================================================================
 
 function initializeChart() {
-    // The canvas element must exist for this to work
     const canvasElement = document.getElementById('kda-chart');
     if (!canvasElement) return;
 
     const ctx = canvasElement.getContext('2d');
     
-    // Destroy existing chart instance if it exists to prevent Chart.js errors
     if (kdaChart) {
         kdaChart.destroy();
     }
@@ -183,7 +190,7 @@ function initializeChart() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false, // Allows chart to fill the container defined in CSS
+            maintainAspectRatio: false, 
             scales: {
                 x: {
                     title: { display: true, text: 'Date', color: '#f0f0f0' },
@@ -219,7 +226,6 @@ function updateOverallKDA(allGames) {
         careerAssists += dailyData.totalAssists;
     });
 
-    // Calculate career KDA from the grand totals
     const overallKda = calculateKda(careerKills, careerDeaths, careerAssists);
     overallKdaDisplay.textContent = overallKda;
 }
@@ -227,10 +233,8 @@ function updateOverallKDA(allGames) {
 function updateChart(allGames) {
     if (!kdaChart) return;
     
-    // Sort documents by their ID (the date string) for chronological plotting
     const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
-    // Update chart data
     kdaChart.data.labels = sortedGames.map(game => game.date);
     kdaChart.data.datasets[0].data = sortedGames.map(game => game.kdaRatio);
     kdaChart.update();
@@ -238,13 +242,11 @@ function updateChart(allGames) {
 
 
 function startRealtimeListener() {
-    // Initialize chart once
     initializeChart(); 
     
     const path = getCollectionPath();
     const gamesCollectionRef = collection(db, path);
     
-    // No orderBy needed in the query, we sort the results in JavaScript
     const gamesQuery = query(gamesCollectionRef); 
     console.log(`Starting real-time listener on KDA path: ${path}`);
 
@@ -257,15 +259,12 @@ function startRealtimeListener() {
         snapshot.forEach((doc) => {
             const dailyData = doc.data();
             
-            // The document ID is the date, so we can ensure it has one
             if (doc.id) { 
-                // Store the date and daily totals
                 dailyData.date = doc.id; 
                 allDailyData.push(dailyData);
             }
         });
 
-        // Sort data for display (most recent first)
         const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
         
         sortedDisplayData.forEach(dailyData => {
@@ -282,7 +281,6 @@ function startRealtimeListener() {
         });
 
 
-        // Update the overall summary and the graph
         updateOverallKDA(allDailyData);
         updateChart(allDailyData); 
         
@@ -295,5 +293,8 @@ function startRealtimeListener() {
 }
 
 
-// Start the listener immediately
+// 1. Set the date input to today's date
+setInitialDate();
+
+// 2. Start the data listener
 startRealtimeListener();

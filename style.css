@@ -13,12 +13,12 @@ body {
 
 .container {
     background-color: #2a2a2a;
-    padding: 30px;
+    padding: 20px; /* Reduced padding */
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
     width: 95%;
-    max-width: 1000px; 
-    margin-top: 50px;
+    max-width: 800px; /* Reduced max width */
+    margin-top: 30px; /* Reduced top margin */
 }
 
 h1 {
@@ -31,30 +31,30 @@ h1 {
 /* --- MAIN FLEX LAYOUT --- */
 .main-content {
     display: flex;
-    gap: 30px;
-    margin-top: 20px;
+    gap: 20px; /* Reduced gap */
+    margin-top: 15px; /* Reduced margin */
 }
 
 .chart-area {
     flex: 3; 
     background-color: #333;
-    padding: 20px;
+    padding: 15px; /* Reduced padding */
     border-radius: 8px;
     box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3);
     
-    /* 🛠️ THE FIX: Set a defined height and position */
+    /* Fixed height for smaller view */
     position: relative; 
-    height: 400px; 
+    height: 300px; /* Reduced height */
 }
 
 .input-sidebar {
     flex: 1; 
     background-color: #333;
-    padding: 20px;
+    padding: 15px; /* Reduced padding */
     border-radius: 8px;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 10px; /* Reduced gap */
 }
 
 /* Input Elements */
@@ -65,11 +65,11 @@ input[type="number"], input[type="date"] {
     border-radius: 4px;
     background-color: #444;
     color: #f0f0f0;
-    box-sizing: border-box; 
+    box-sizing: border-box;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-    filter: invert(1); 
+    filter: invert(1);
 }
 
 .input-group label {
@@ -108,9 +108,9 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 /* KDA Summary */
 .kda-summary {
     text-align: center;
-    padding: 10px;
+    padding: 8px; /* Reduced padding */
     border-radius: 8px;
-    margin-top: 15px;
+    margin-top: 10px; /* Reduced margin */
     background-color: #444;
 }
 
@@ -123,7 +123,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 /* Game History List */
 .history-header {
-    margin-top: 30px;
+    margin-top: 20px; /* Reduced margin */
 }
 
 #game-list {
@@ -133,8 +133,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 #game-list li {
     background-color: #333;
-    margin-bottom: 8px;
-    padding: 12px;
+    margin-bottom: 5px; /* Reduced margin */
+    padding: 8px 12px; /* Reduced padding */
     border-radius: 6px;
     display: flex;
     justify-content: space-between;
