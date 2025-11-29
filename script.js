@@ -189,7 +189,7 @@ const editKdaEntry = (dailyData) => {
 
     // 2. Change the button to indicate we are replacing/editing the total
     addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
-    addGameBtn.style.backgroundColor = '#f39c12'; 
+    addGameBtn.style.backgroundColor = '#f39c12'; // Keep temporary orange for UX differentiation
     
     // 3. Remove the old event listener and add a temporary one for the update
     addGameBtn.removeEventListener('click', addGame);
@@ -232,7 +232,7 @@ const handleUpdateClick = async () => {
         deathsInput.value = '';
         assistsInput.value = '';
         addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
-        addGameBtn.style.backgroundColor = '#79d7d7';
+        addGameBtn.style.backgroundColor = '#FFC300'; // Reset to new Gold theme color
         
         // Restore the original event listener (for aggregation)
         addGameBtn.removeEventListener('click', handleUpdateClick);
@@ -267,8 +267,9 @@ function initializeChart() {
             datasets: [{
                 label: 'KDA Ratio',
                 data: [], 
-                borderColor: '#79d7d7',
-                backgroundColor: 'rgba(121, 215, 215, 0.2)',
+                // NEW: Gold Chart Line
+                borderColor: '#FFC300', 
+                backgroundColor: 'rgba(255, 195, 0, 0.2)',
                 borderWidth: 2,
                 tension: 0.4,
                 pointRadius: 5,
@@ -292,11 +293,10 @@ function initializeChart() {
             },
             plugins: {
                 legend: { display: false },
-                // UPDATED: Zoom Plugin Configuration for Vertical-Only Zoom
                 zoom: {
                     pan: {
                         enabled: true, 
-                        mode: 'xy', // Allows users to still pan horizontally across dates
+                        mode: 'x', 
                     },
                     zoom: {
                         wheel: {
@@ -306,7 +306,6 @@ function initializeChart() {
                         pinch: {
                             enabled: true 
                         },
-                        // FIX: Change to 'y' to restrict zooming to only the vertical axis
                         mode: 'y', 
                         sensitivity: 10,
                     },
@@ -410,8 +409,8 @@ function startRealtimeListener() {
             const li = document.createElement('li');
             li.textContent = "No games logged yet. Add your first game to see your history and graph!";
             li.style.textAlign = 'center';
-            li.style.backgroundColor = '#444';
-            li.style.borderLeft = '5px solid #f39c12'; 
+            li.style.backgroundColor = '#333';
+            li.style.borderLeft = '5px solid #FFC300'; 
             gameList.appendChild(li);
         }
 
@@ -463,4 +462,4 @@ function startRealtimeListener() {
 
 // Start the application
 setInitialDate();
-startRealtimeListener(); 
+startRealtimeListener();
