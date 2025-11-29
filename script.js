@@ -123,9 +123,10 @@ const addGame = async () => {
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            existingKills = data.totalKills || 0;
-            existingDeaths = data.totalDeaths || 0;
-            existingAssists = data.totalAssists || 0;
+            // Use parseInt here to handle potential stringified numbers from older data
+            existingKills = parseInt(data.totalKills) || 0;
+            existingDeaths = parseInt(data.totalDeaths) || 0;
+            existingAssists = parseInt(data.totalAssists) || 0;
         }
 
         const newTotalKills = existingKills + kills;
@@ -246,7 +247,7 @@ const handleUpdateClick = async () => {
 
 
 // =================================================================
-// 5. LISTENER & DISPLAY (Fixes applied here)
+// 5. LISTENER & DISPLAY (CRITICAL FIXES APPLIED HERE)
 // =================================================================
 
 function updateOverallKDA(allGames) {
@@ -299,18 +300,23 @@ function startRealtimeListener() {
             // Filter out random Firestore IDs (only accept YYYY-MM-DD format)
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 
-                // --- FIX: Explicitly define and clean data fields for robustness ---
-                const kills = dailyData.totalKills || 0;
-                const deaths = dailyData.totalDeaths || 0;
-                const assists = dailyData.totalAssists || 0;
+                // --- CRITICAL FIX: Explicitly convert to number for all fields ---
+                const kills = parseInt(dailyData.totalKills) || 0;
+                const deaths = parseInt(dailyData.totalDeaths) || 0;
+                const assists = parseInt(dailyData.totalAssists) || 0;
+                
+                let kdaRatio = parseFloat(dailyData.kdaRatio);
+                // Re-calculate if the stored ratio is missing or invalid (NaN)
+                if (isNaN(kdaRatio)) {
+                    kdaRatio = parseFloat(calculateKda(kills, deaths, assists));
+                }
 
                 allDailyData.push({
                     date: dateString,
                     totalKills: kills,
                     totalDeaths: deaths,
                     totalAssists: assists,
-                    // Recalculate KDA if necessary, ensuring it's a number
-                    kdaRatio: dailyData.kdaRatio || parseFloat(calculateKda(kills, deaths, assists))
+                    kdaRatio: kdaRatio
                 });
             }
         });
