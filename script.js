@@ -123,7 +123,7 @@ const addGame = async () => {
         
         if (docSnap.exists()) {
             const data = docSnap.data();
-            // Use parseInt here to handle potential stringified numbers from older data
+            // Use parseInt to handle potential stringified numbers from older data
             existingKills = parseInt(data.totalKills) || 0;
             existingDeaths = parseInt(data.totalDeaths) || 0;
             existingAssists = parseInt(data.totalAssists) || 0;
