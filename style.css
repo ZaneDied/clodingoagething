@@ -21,6 +21,11 @@ body {
     margin-top: 30px; 
 }
 
+/* NEW: Hide elements based on mode */
+.hidden {
+    display: none !important;
+}
+
 /* NEW: Mode Selector Styling */
 .mode-selector {
     display: flex;
@@ -114,12 +119,12 @@ h2 {
     gap: 10px; 
 }
 
-/* KDA Inputs: Desktop uses inline-block/flex-row for small horizontal layout */
-.kda-inputs {
+/* KDA and HSR Inputs: Desktop uses inline-block/flex-row for small horizontal layout */
+.kda-inputs, .hsr-inputs { 
     display: flex;
     gap: 5px;
 }
-.kda-inputs input {
+.kda-inputs input, .hsr-inputs input {
     flex-grow: 1;
 }
 
@@ -137,7 +142,7 @@ h2 {
     margin: 0 0 5px 0;
 }
 
-#overall-kda {
+#overall-metric-display { /* Updated ID */
     font-size: 1.5em;
     font-weight: bold;
     color: #FFC300; /* Gold */
@@ -191,8 +196,10 @@ input[type="number"], input[type="date"] {
     margin-bottom: 5px; 
     padding: 8px 12px; 
     border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
+    /* Now includes all KDA/HSR stats */
+    display: grid; 
+    grid-template-columns: 100px 1fr 1fr auto;
+    gap: 10px;
     align-items: center;
     border-left: 5px solid #FFC300; /* Gold Accent */
 }
@@ -201,25 +208,24 @@ input[type="number"], input[type="date"] {
     color: #aaa;
     font-size: 0.9em;
     font-weight: bold;
-    width: 100px; 
+    /* width: 100px; - Removed for Grid */
 }
 
 .daily-score {
     font-weight: bold;
-    flex-grow: 0; 
-    margin-right: 10px; 
+    /* flex-grow: 0; - Removed for Grid */
 }
 
 .daily-kda-ratio {
-    margin-left: auto;
-    /* 2px gap requested between KDA count and Edit button (which is in action-buttons) */
-    margin-right: 2px; 
+    /* margin-left: auto; - Removed for Grid */
+    /* margin-right: 2px; - Removed for Grid */
 }
 
 /* --- ACTION BUTTON STYLES --- */
 .action-buttons {
     display: flex;
     gap: 5px;
+    justify-self: end; /* Align to end of grid column */
 }
 
 .action-buttons button {
@@ -295,14 +301,15 @@ input[type="number"], input[type="date"] {
         height: auto; 
     }
 
-    /* KDA Inputs: Stack vertically for easier tapping */
-    .kda-inputs {
+    /* KDA & HSR Inputs: Stack vertically for easier tapping */
+    .kda-inputs, .hsr-inputs {
         flex-direction: column;
         gap: 10px; 
     }
     
     /* HISTORY LIST: Stack content vertically for readability */
     #game-list li {
+        display: flex; /* Switch back to flex for stacking */
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
