@@ -51,11 +51,9 @@ const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
 const resetZoomBtn = document.getElementById('reset-zoom-btn');
-
-// NEW: Select the KDA and HSR mode buttons
-const kdaModeBtn = document.getElementById('mode-kda-btn');
-const hsrModeBtn = document.getElementById('mode-hsr-btn');
-
+// NEW: Select the KDA and HSR title buttons
+const kdaTitleBtn = document.getElementById('kda-title-btn');
+const hsrTitleBtn = document.getElementById('hsr-title-btn'); // NEW button
 
 let kdaChart; // Global variable to hold the Chart.js instance
 
@@ -82,9 +80,9 @@ function calculateKda(kills, deaths, assists) {
     return ((kills + assists) / deaths).toFixed(2);
 }
 
-// Defines the collection path. (Currently hardcoded to 'games' for KDA)
+// Defines the collection path.
 const getCollectionPath = () => {
-    // This function should be updated when HSR logic is implemented
+    // Note: The context has shifted to 'Restaurant' but the data remains 'games'. 
     return `users/${userId}/games`; 
 };
 
@@ -165,26 +163,19 @@ if (addGameBtn) {
     addGameBtn.addEventListener('click', addGame);
 }
 
-// NEW: Handlers for the KDA and HSR buttons
-if (kdaModeBtn) {
-    kdaModeBtn.addEventListener('click', () => {
-        // Toggle active class and potentially load KDA data
-        kdaModeBtn.classList.add('active');
-        hsrModeBtn.classList.remove('active');
-        // Future: Add logic to switch data view here
+if (kdaTitleBtn) {
+    kdaTitleBtn.addEventListener('click', () => {
+        // Placeholder for KDA functionality (no notification, as requested)
+        console.log("KDA button clicked.");
     });
 }
 
-if (hsrModeBtn) {
-    hsrModeBtn.addEventListener('click', () => {
-        // Toggle active class and potentially load HSR data
-        hsrModeBtn.classList.add('active');
-        kdaModeBtn.classList.remove('active');
-        // Future: Add logic to switch data view here
-        displayMessage("HSR mode selected! (Functionality not yet implemented)", 'success');
+if (hsrTitleBtn) {
+    hsrTitleBtn.addEventListener('click', () => {
+        // Placeholder for HSR functionality (no notification, as requested)
+        console.log("HSR button clicked.");
     });
 }
-
 
 // =================================================================
 // 4. LOGIC: DELETE & EDIT FUNCTIONS
@@ -261,7 +252,7 @@ const handleUpdateClick = async () => {
         deathsInput.value = '';
         assistsInput.value = '';
         addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
-        addGameBtn.style.backgroundColor = '#FFC300'; // Reset to new Gold theme color
+        addGameBtn.style.backgroundColor = '#FFC300'; // Reset to Gold theme color
         
         // Restore the original event listener (for aggregation)
         addGameBtn.removeEventListener('click', handleUpdateClick);
