@@ -51,6 +51,8 @@ const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
 const resetZoomBtn = document.getElementById('reset-zoom-btn');
+// NEW: Select the new KDA title button
+const kdaTitleBtn = document.getElementById('kda-title-btn');
 
 let kdaChart; // Global variable to hold the Chart.js instance
 
@@ -159,6 +161,15 @@ const addGame = async () => {
 if (addGameBtn) {
     addGameBtn.addEventListener('click', addGame);
 }
+
+// NEW: Add handler for the KDA button (Example)
+if (kdaTitleBtn) {
+    kdaTitleBtn.addEventListener('click', () => {
+        displayMessage("KDA Title button clicked!", 'success');
+        // You can attach a specific feature or navigation here later.
+    });
+}
+
 
 // =================================================================
 // 4. LOGIC: DELETE & EDIT FUNCTIONS

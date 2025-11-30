@@ -52,12 +52,32 @@ body {
 }
 
 
-h1 {
+/* REMOVED OLD H1 STYLES HERE */
+
+/* NEW: Style for the H1-replacement KDA Button */
+.kda-h1-btn {
+    /* Style to mimic the old h1 */
     color: #FFC300; /* Gold */
+    border: none;
     border-bottom: 2px solid #FFC300; /* Gold Accent */
+    background: none;
+    padding: 0;
     padding-bottom: 10px;
     margin-top: 0;
+    margin-bottom: 20px; /* Add some margin for spacing */
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    /* Make the text large and bold like a heading */
+    font-size: 2em;
+    font-weight: bold;
+    transition: color 0.2s;
 }
+
+.kda-h1-btn:hover {
+    color: #FFD700; /* Lighter gold on hover */
+}
+
 
 h2 {
     color: #f0f0f0;
@@ -282,6 +302,12 @@ input[type="number"], input[type="date"] {
     .container {
         padding: 10px; 
         margin-top: 10px;
+    }
+
+    /* MODIFIED: Mobile style for the new button */
+    .kda-h1-btn {
+        font-size: 1.5em; 
+        margin-bottom: 15px; 
     }
     
     /* STACKING: Chart and Inputs vertically */

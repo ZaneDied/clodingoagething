@@ -3,28 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Updated Title to "Restaurant" -->
     <title>Restaurant</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Required Chart.js Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
 <body>
     <div class="container">
         
-        <!-- NEW: Mode Selector Buttons -->
         <div class="mode-selector">
             <button id="mode-restaurant-btn" class="mode-btn active">Restaurant</button>
             <button id="mode-chef-btn" class="mode-btn">Chef</button>
         </div>
         
-        <!-- Main Content Title -->
-        <h1>Performance Log</h1>
+        <button id="kda-title-btn" class="kda-h1-btn">KDA</button>
 
         <p class="user-info-note">Your ID: <span id="user-id-display">PUBLIC</span></p>
 
-        <!-- KDA Summary Area -->
         <div class="kda-summary-inline">
             <h2>Overall Career KDA (K+A/D)</h2>
             <div id="overall-kda">0.00</div>
@@ -33,7 +28,6 @@
         <div id="message-box" class="message-box"></div>
 
         <div class="main-content">
-            <!-- Chart Area -->
             <div class="chart-area">
                 <canvas id="kda-chart"></canvas>
                 <div class="chart-controls">
@@ -41,7 +35,6 @@
                 </div>
             </div>
 
-            <!-- Input Sidebar -->
             <div class="input-sidebar">
                 <label for="date-input">Game Date</label>
                 <input type="date" id="date-input">
