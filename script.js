@@ -37,25 +37,44 @@ const db = getFirestore(app);
 // Public ID for universal access (matches your published rules)
 const userId = 'PUBLIC'; 
 
+// Database Collection Constants
+const KDA_COLLECTION_NAME = 'games';
+const HSR_COLLECTION_NAME = 'headshots';
+
 // =================================================================
 // 2. UI Elements and Utilities
 // =================================================================
 
-const dateInput = document.getElementById('date-input');
+// --- KDA Elements ---
+const kdaContent = document.getElementById('kda-tracker-content');
+const dateInputKda = document.getElementById('date-input-kda');
 const killsInput = document.getElementById('kills-input');
 const deathsInput = document.getElementById('deaths-input');
 const assistsInput = document.getElementById('assists-input');
 const addGameBtn = document.getElementById('add-game-btn');
-const gameList = document.getElementById('game-list'); 
+const kdaList = document.getElementById('kda-list'); 
 const overallKdaDisplay = document.getElementById('overall-kda');
+const resetZoomBtnKda = document.getElementById('reset-zoom-btn-kda');
+
+// --- HSR Elements ---
+const hsrContent = document.getElementById('hsr-tracker-content');
+const dateInputHsr = document.getElementById('date-input-hsr');
+const hsrRateInput = document.getElementById('hsr-rate-input');
+const addHsrBtn = document.getElementById('add-hsr-btn');
+const hsrList = document.getElementById('hsr-list'); 
+const overallHsrDisplay = document.getElementById('overall-hsr');
+const resetZoomBtnHsr = document.getElementById('reset-zoom-btn-hsr');
+
+// --- Shared Elements ---
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
-const resetZoomBtn = document.getElementById('reset-zoom-btn');
-// NEW: Select the KDA and HSR title buttons
 const kdaTitleBtn = document.getElementById('kda-title-btn');
-const hsrTitleBtn = document.getElementById('hsr-title-btn'); // NEW button
+const hsrTitleBtn = document.getElementById('hsr-title-btn');
 
-let kdaChart; // Global variable to hold the Chart.js instance
+let kdaChart; // Global variable to hold the KDA Chart.js instance
+let hsrChart; // Global variable to hold the HSR Chart.js instance
+
+let currentListenerUnsubscribe; // To manage the current active real-time listener
 
 if (userIdDisplay) {
     userIdDisplay.textContent = userId;
@@ -80,10 +99,10 @@ function calculateKda(kills, deaths, assists) {
     return ((kills + assists) / deaths).toFixed(2);
 }
 
-// Defines the collection path.
-const getCollectionPath = () => {
-    // Note: The context has shifted to 'Restaurant' but the data remains 'games'. 
-    return `users/${userId}/games`; 
+// Defines the collection path based on the mode.
+const getCollectionPath = (mode) => {
+    const collection = mode === 'KDA' ? KDA_COLLECTION_NAME : HSR_COLLECTION_NAME;
+    return `users/${userId}/${collection}`; 
 };
 
 // Set the date input to today's date
@@ -96,18 +115,16 @@ function setInitialDate() {
     
     const formattedDate = `${year}-${month}-${day}`;
     
-    if (dateInput) {
-        dateInput.value = formattedDate;
-    }
+    if (dateInputKda) dateInputKda.value = formattedDate;
+    if (dateInputHsr) dateInputHsr.value = formattedDate;
 }
 
-
 // =================================================================
-// 3. LOGIC: ADDING AND AGGREGATING A GAME
+// 3. KDA LOGIC (Modified to use new IDs/logic)
 // =================================================================
 
 const addGame = async () => {
-    const gameDate = dateInput.value;
+    const gameDate = dateInputKda.value;
     const kills = parseInt(killsInput.value) || 0;
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
@@ -117,7 +134,7 @@ const addGame = async () => {
         return;
     }
 
-    const path = getCollectionPath();
+    const path = getCollectionPath('KDA');
     const docRef = doc(db, path, gameDate); 
     
     try {
@@ -154,73 +171,46 @@ const addGame = async () => {
         assistsInput.value = '';
 
     } catch (error) {
-        console.error("ERROR: Could not save document.", error);
-        displayMessage(`ERROR: Could not log game. Check Firebase Rules!`, 'error');
+        console.error("ERROR: Could not save KDA document.", error);
+        displayMessage(`ERROR: Could not log KDA game.`, 'error');
     }
 };
 
-if (addGameBtn) {
-    addGameBtn.addEventListener('click', addGame);
-}
-
-if (kdaTitleBtn) {
-    kdaTitleBtn.addEventListener('click', () => {
-        // Placeholder for KDA functionality (no notification, as requested)
-        console.log("KDA button clicked.");
-    });
-}
-
-if (hsrTitleBtn) {
-    hsrTitleBtn.addEventListener('click', () => {
-        // Placeholder for HSR functionality (no notification, as requested)
-        console.log("HSR button clicked.");
-    });
-}
-
-// =================================================================
-// 4. LOGIC: DELETE & EDIT FUNCTIONS
-// =================================================================
-
 const deleteKdaEntry = async (dateString) => {
-    // IMPORTANT: Use custom modal instead of built-in confirm()
-    // For now, keeping confirm as a fallback/simple implementation
-    if (!confirm(`Are you sure you want to delete the daily total for ${dateString}?`)) {
+    if (!confirm(`Are you sure you want to delete the daily KDA total for ${dateString}?`)) {
         return;
     }
     
-    const path = getCollectionPath();
+    const path = getCollectionPath('KDA');
     const docRef = doc(db, path, dateString);
     
     try {
         await deleteDoc(docRef);
-        displayMessage(`Successfully deleted entry for ${dateString}.`, 'success');
+        displayMessage(`Successfully deleted KDA entry for ${dateString}.`, 'success');
     } catch (error) {
-        console.error("ERROR: Could not delete document.", error);
-        displayMessage(`ERROR: Could not delete entry: ${error.message}`, 'error');
+        console.error("ERROR: Could not delete KDA document.", error);
+        displayMessage(`ERROR: Could not delete KDA entry: ${error.message}`, 'error');
     }
 };
 
 const editKdaEntry = (dailyData) => {
-    // 1. Move the data to the input fields for easy editing
-    dateInput.value = dailyData.date;
+    dateInputKda.value = dailyData.date;
     killsInput.value = dailyData.totalKills;
     deathsInput.value = dailyData.totalDeaths;
     assistsInput.value = dailyData.totalAssists;
 
-    // 2. Change the button to indicate we are replacing/editing the total
-    addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
-    addGameBtn.style.backgroundColor = '#f39c12'; // Temporary orange for UX differentiation
+    addGameBtn.textContent = `UPDATE DAILY KDA TOTAL (${dailyData.date})`;
+    addGameBtn.style.backgroundColor = '#f39c12'; 
     
-    // 3. Remove the old event listener and add a temporary one for the update
     addGameBtn.removeEventListener('click', addGame);
-    addGameBtn.addEventListener('click', handleUpdateClick);
+    addGameBtn.addEventListener('click', handleUpdateKdaClick);
     
-    displayMessage(`Ready to edit/replace daily total for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
+    displayMessage(`Ready to edit/replace daily KDA total for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
 };
 
 
-const handleUpdateClick = async () => {
-    const gameDate = dateInput.value;
+const handleUpdateKdaClick = async () => {
+    const gameDate = dateInputKda.value;
     const kills = parseInt(killsInput.value) || 0;
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
@@ -230,13 +220,12 @@ const handleUpdateClick = async () => {
         return;
     }
 
-    const path = getCollectionPath();
+    const path = getCollectionPath('KDA');
     const docRef = doc(db, path, gameDate); 
     
     try {
         const newKdaRatio = parseFloat(calculateKda(kills, deaths, assists));
         
-        // Use setDoc without merge to COMPLETELY OVERWRITE the daily total
         await setDoc(docRef, {
             date: gameDate, 
             totalKills: kills,
@@ -245,49 +234,148 @@ const handleUpdateClick = async () => {
             kdaRatio: newKdaRatio
         });
         
-        displayMessage(`Successfully updated daily total for ${gameDate}.`, 'success');
+        displayMessage(`Successfully updated daily KDA total for ${gameDate}.`, 'success');
         
-        // Reset the input fields and button state
         killsInput.value = '';
         deathsInput.value = '';
         assistsInput.value = '';
         addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
-        addGameBtn.style.backgroundColor = '#FFC300'; // Reset to Gold theme color
+        addGameBtn.style.backgroundColor = '#FFC300'; 
         
-        // Restore the original event listener (for aggregation)
-        addGameBtn.removeEventListener('click', handleUpdateClick);
+        addGameBtn.removeEventListener('click', handleUpdateKdaClick);
         addGameBtn.addEventListener('click', addGame);
 
 
     } catch (error) {
-        console.error("ERROR: Could not update document.", error);
-        displayMessage(`ERROR: Could not update entry: ${error.message}`, 'error');
+        console.error("ERROR: Could not update KDA document.", error);
+        displayMessage(`ERROR: Could not update KDA entry: ${error.message}`, 'error');
+    }
+};
+
+// =================================================================
+// 4. HSR LOGIC (NEW)
+// =================================================================
+
+const addHSR = async () => {
+    const gameDate = dateInputHsr.value;
+    const hsrRate = parseFloat(hsrRateInput.value); 
+    
+    if (!gameDate || isNaN(hsrRate) || hsrRate < 0 || hsrRate > 100) {
+        displayMessage("Please enter a valid date and Headshot Rate (0-100%).", 'error');
+        return;
+    }
+
+    const path = getCollectionPath('HSR');
+    const docRef = doc(db, path, gameDate); 
+    
+    try {
+        // HSR tracking does NOT aggregate, it just replaces the daily rate
+        await setDoc(docRef, {
+            date: gameDate, 
+            hsrRate: hsrRate
+        }, { merge: true }); 
+        
+        displayMessage(`Headshot Rate Logged! Rate for ${gameDate}: ${hsrRate.toFixed(2)}%`, 'success');
+        
+        hsrRateInput.value = '';
+
+    } catch (error) {
+        console.error("ERROR: Could not save HSR document.", error);
+        displayMessage(`ERROR: Could not log HSR rate.`, 'error');
+    }
+};
+
+const deleteHsrEntry = async (dateString) => {
+    if (!confirm(`Are you sure you want to delete the daily HSR rate for ${dateString}?`)) {
+        return;
+    }
+    
+    const path = getCollectionPath('HSR');
+    const docRef = doc(db, path, dateString);
+    
+    try {
+        await deleteDoc(docRef);
+        displayMessage(`Successfully deleted HSR entry for ${dateString}.`, 'success');
+    } catch (error) {
+        console.error("ERROR: Could not delete HSR document.", error);
+        displayMessage(`ERROR: Could not delete HSR entry: ${error.message}`, 'error');
+    }
+};
+
+const editHsrEntry = (dailyData) => {
+    dateInputHsr.value = dailyData.date;
+    hsrRateInput.value = dailyData.hsrRate;
+
+    addHsrBtn.textContent = `UPDATE DAILY HSR RATE (${dailyData.date})`;
+    addHsrBtn.style.backgroundColor = '#f39c12'; 
+    
+    addHsrBtn.removeEventListener('click', addHSR);
+    addHsrBtn.addEventListener('click', handleUpdateHsrClick);
+    
+    displayMessage(`Ready to edit/replace daily HSR rate for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
+};
+
+
+const handleUpdateHsrClick = async () => {
+    const gameDate = dateInputHsr.value;
+    const hsrRate = parseFloat(hsrRateInput.value); 
+    
+    if (!gameDate || isNaN(hsrRate) || hsrRate < 0 || hsrRate > 100) {
+        displayMessage("Please enter a valid date and Headshot Rate (0-100%).", 'error');
+        return;
+    }
+
+    const path = getCollectionPath('HSR');
+    const docRef = doc(db, path, gameDate); 
+    
+    try {
+        
+        await setDoc(docRef, {
+            date: gameDate, 
+            hsrRate: hsrRate
+        });
+        
+        displayMessage(`Successfully updated daily HSR rate for ${gameDate}.`, 'success');
+        
+        hsrRateInput.value = '';
+        addHsrBtn.textContent = 'Log Headshot Rate (Daily Total)';
+        addHsrBtn.style.backgroundColor = '#FFC300'; 
+        
+        addHsrBtn.removeEventListener('click', handleUpdateHsrClick);
+        addHsrBtn.addEventListener('click', addHSR);
+
+
+    } catch (error) {
+        console.error("ERROR: Could not update HSR document.", error);
+        displayMessage(`ERROR: Could not update HSR entry: ${error.message}`, 'error');
     }
 };
 
 
 // =================================================================
-// 5. LISTENER & DISPLAY (Zoom Logic and Empty Data Handling)
+// 5. CHARTS AND DATA UPDATE FUNCTIONS
 // =================================================================
 
-function initializeChart() {
-    const canvasElement = document.getElementById('kda-chart');
+function initializeChart(chartId) {
+    const canvasElement = document.getElementById(chartId);
     if (!canvasElement) return;
 
     const ctx = canvasElement.getContext('2d');
-    
-    if (kdaChart) {
-        kdaChart.destroy();
+    let chartInstance = chartId === 'kda-chart' ? kdaChart : hsrChart;
+
+    if (chartInstance) {
+        chartInstance.destroy();
     }
     
-    kdaChart = new Chart(ctx, {
+    const isKda = chartId === 'kda-chart';
+    
+    chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: [], 
             datasets: [{
-                label: 'KDA Ratio',
+                label: isKda ? 'KDA Ratio' : 'HSR %',
                 data: [], 
-                // Gold Chart Line
                 borderColor: '#FFC300', 
                 backgroundColor: 'rgba(255, 195, 0, 0.2)',
                 borderWidth: 2,
@@ -306,39 +394,43 @@ function initializeChart() {
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 },
                 y: {
-                    title: { display: true, text: 'KDA', color: '#f0f0f0' },
-                    ticks: { color: '#f0f0f0', beginAtZero: true },
+                    title: { display: true, text: isKda ? 'KDA' : 'HSR (%)', color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0', beginAtZero: isKda ? true : false, suggestedMin: isKda ? 0 : -5, suggestedMax: isKda ? undefined : 105},
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 }
             },
             plugins: {
                 legend: { display: false },
                 zoom: {
-                    pan: {
-                        enabled: true, 
-                        mode: 'x', 
-                    },
+                    pan: { enabled: true, mode: 'x' },
                     zoom: {
-                        wheel: {
-                            enabled: true, 
-                            modifierKey: 'ctrl', 
-                        },
-                        pinch: {
-                            enabled: true 
-                        },
+                        wheel: { enabled: true, modifierKey: 'ctrl' },
+                        pinch: { enabled: true },
                         mode: 'y', 
                         sensitivity: 10,
                     },
-                    limits: {
-                         x: { minRange: 1 }, 
-                         y: { minRange: 0.1 } 
-                    }
+                    limits: { x: { minRange: 1 }, y: { minRange: 0.1 } }
                 }
             }
         }
     });
-}
 
+    if (isKda) {
+        kdaChart = chartInstance;
+        // Attach KDA reset listener
+        if (resetZoomBtnKda) {
+            resetZoomBtnKda.style.display = 'inline-block';
+            resetZoomBtnKda.onclick = () => kdaChart.resetZoom();
+        }
+    } else {
+        hsrChart = chartInstance;
+        // Attach HSR reset listener
+        if (resetZoomBtnHsr) {
+            resetZoomBtnHsr.style.display = 'inline-block';
+            resetZoomBtnHsr.onclick = () => hsrChart.resetZoom();
+        }
+    }
+}
 
 function updateOverallKDA(allGames) {
     let careerKills = 0;
@@ -359,54 +451,58 @@ function updateOverallKDA(allGames) {
     }
 }
 
-function updateChart(allGames) {
-    if (!kdaChart) return;
+function updateChart(allGames, chartInstance, dataKey) {
+    if (!chartInstance) return;
     
     const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
-    kdaChart.data.labels = sortedGames.map(game => game.date);
-    kdaChart.data.datasets[0].data = sortedGames.map(game => game.kdaRatio);
-    kdaChart.update();
+    chartInstance.data.labels = sortedGames.map(game => game.date);
+    chartInstance.data.datasets[0].data = sortedGames.map(game => game[dataKey]);
+    chartInstance.update();
+}
+
+// NEW: HSR specific overall update
+function updateOverallHSR(allHsrData) {
+    if (allHsrData.length === 0) {
+        overallHsrDisplay.textContent = '0.00%';
+        return;
+    }
+    const totalHsr = allHsrData.reduce((sum, data) => sum + data.hsrRate, 0);
+    const averageHsr = (totalHsr / allHsrData.length).toFixed(2);
+    overallHsrDisplay.textContent = `${averageHsr}%`;
 }
 
 
-function startRealtimeListener() {
-    initializeChart(); 
+// =================================================================
+// 6. REALTIME LISTENERS
+// =================================================================
 
-    // Attach event listener for the Reset Zoom button after initialization
-    if (kdaChart && resetZoomBtn) {
-        resetZoomBtn.style.display = 'inline-block';
-        resetZoomBtn.addEventListener('click', () => {
-            if (kdaChart) {
-                kdaChart.resetZoom();
-            }
-        });
-    }
+function startKdaRealtimeListener() {
+    initializeChart('kda-chart'); 
     
-    const path = getCollectionPath();
+    const path = getCollectionPath('KDA');
     const gamesCollectionRef = collection(db, path);
     const gamesQuery = query(gamesCollectionRef); 
     
-    onSnapshot(gamesQuery, (snapshot) => {
-        if (!gameList) return; 
+    // Unsubscribe from any previous listener
+    if (currentListenerUnsubscribe) currentListenerUnsubscribe();
+
+    currentListenerUnsubscribe = onSnapshot(gamesQuery, (snapshot) => {
+        if (!kdaList) return; 
 
         const allDailyData = [];
-        gameList.innerHTML = ''; 
+        kdaList.innerHTML = ''; 
 
         snapshot.forEach((doc) => {
             const dailyData = doc.data();
             const dateString = dailyData.date || doc.id;
             
-            // Filter out random Firestore IDs (only accept YYYY-MM-DD format)
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
-                
-                // CRITICAL FIX: Explicitly convert to number for all fields to prevent crashes
                 const kills = parseInt(dailyData.totalKills) || 0;
                 const deaths = parseInt(dailyData.totalDeaths) || 0;
                 const assists = parseInt(dailyData.totalAssists) || 0;
                 
                 let kdaRatio = parseFloat(dailyData.kdaRatio);
-                // Re-calculate if the stored ratio is missing or invalid (NaN)
                 if (isNaN(kdaRatio)) {
                     kdaRatio = parseFloat(calculateKda(kills, deaths, assists));
                 }
@@ -421,17 +517,10 @@ function startRealtimeListener() {
             }
         });
 
-        // Sort data for display (most recent first)
         const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
         
-        // FIX FOR EMPTY DATA DISPLAY 
         if (sortedDisplayData.length === 0) {
-            const li = document.createElement('li');
-            li.textContent = "No games logged yet. Add your first game to see your history and graph!";
-            li.style.textAlign = 'center';
-            li.style.backgroundColor = '#333';
-            li.style.borderLeft = '5px solid #FFC300'; 
-            gameList.appendChild(li);
+            kdaList.innerHTML = `<li style="text-align: center; background-color: #333; border-left: 5px solid #FFC300;">No KDA games logged yet.</li>`;
         }
 
         sortedDisplayData.forEach(dailyData => {
@@ -441,7 +530,7 @@ function startRealtimeListener() {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span class="daily-date">${dailyData.date}</span>
-                <span class="daily-score">Total Scores: ${scoreText}</span>
+                <span class="daily-score">Scores: ${scoreText}</span>
                 <span class="daily-kda-ratio">${kdaRatioText}</span>
                 
                 <div class="action-buttons">
@@ -449,37 +538,134 @@ function startRealtimeListener() {
                     <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
                 </div>
             `; 
-            gameList.appendChild(li);
+            kdaList.appendChild(li);
+            
+            // Re-attach listeners for new buttons
+            li.querySelector('.edit-btn').addEventListener('click', (e) => editKdaEntry(dailyData));
+            li.querySelector('.delete-btn').addEventListener('click', (e) => deleteKdaEntry(dailyData.date));
         });
         
-        // ATTACH EVENT LISTENERS TO NEW BUTTONS
-        document.querySelectorAll('.edit-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                const dateToEdit = e.target.dataset.date;
-                const dataToEdit = allDailyData.find(d => d.date === dateToEdit);
-                if (dataToEdit) {
-                    editKdaEntry(dataToEdit);
-                }
-            });
-        });
-        
-        document.querySelectorAll('.delete-btn').forEach(button => {
-            button.addEventListener('click', (e) => {
-                deleteKdaEntry(e.target.dataset.date);
-            });
-        });
-        
-        // Update the overall summary and the graph
         updateOverallKDA(allDailyData);
-        updateChart(allDailyData); 
+        updateChart(allDailyData, kdaChart, 'kdaRatio'); 
 
     }, (error) => {
-        console.error("FATAL ERROR: Real-time listener failed to sync.", error);
+        console.error("FATAL ERROR: KDA Real-time listener failed to sync.", error);
         displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
+    });
+}
+
+// NEW: HSR Realtime Listener
+function startHsrRealtimeListener() {
+    initializeChart('hsr-chart'); 
+    
+    const path = getCollectionPath('HSR');
+    const hsrCollectionRef = collection(db, path);
+    const hsrQuery = query(hsrCollectionRef); 
+    
+    // Unsubscribe from any previous listener
+    if (currentListenerUnsubscribe) currentListenerUnsubscribe();
+
+    currentListenerUnsubscribe = onSnapshot(hsrQuery, (snapshot) => {
+        if (!hsrList) return; 
+
+        const allDailyData = [];
+        hsrList.innerHTML = ''; 
+
+        snapshot.forEach((doc) => {
+            const dailyData = doc.data();
+            const dateString = dailyData.date || doc.id;
+            
+            if (dateString && dateString.length === 10 && dateString.includes('-')) {
+                const hsrRate = parseFloat(dailyData.hsrRate) || 0;
+                
+                allDailyData.push({
+                    date: dateString,
+                    hsrRate: hsrRate
+                });
+            }
+        });
+
+        const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
+        
+        if (sortedDisplayData.length === 0) {
+            hsrList.innerHTML = `<li style="text-align: center; background-color: #333; border-left: 5px solid #FFC300;">No HSR rates logged yet.</li>`;
+        }
+
+        sortedDisplayData.forEach(dailyData => {
+            const scoreText = `${dailyData.hsrRate.toFixed(2)}%`;
+            
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-score">Rate: ${scoreText}</span>
+                <div class="action-buttons">
+                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                </div>
+            `; 
+            hsrList.appendChild(li);
+
+            // Re-attach listeners for new buttons
+            li.querySelector('.edit-btn').addEventListener('click', (e) => editHsrEntry(dailyData));
+            li.querySelector('.delete-btn').addEventListener('click', (e) => deleteHsrEntry(dailyData.date));
+        });
+        
+        updateOverallHSR(allDailyData);
+        updateChart(allDailyData, hsrChart, 'hsrRate'); 
+
+    }, (error) => {
+        console.error("FATAL ERROR: HSR Real-time listener failed to sync.", error);
+        displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
+    });
+}
+
+
+// =================================================================
+// 7. EVENT HANDLERS AND INITIALIZATION
+// =================================================================
+
+function switchTrackerMode(mode) {
+    if (mode === 'KDA') {
+        kdaTitleBtn.classList.add('active');
+        hsrTitleBtn.classList.remove('active');
+        kdaContent.classList.add('active');
+        kdaContent.classList.remove('hidden');
+        hsrContent.classList.add('hidden');
+        hsrContent.classList.remove('active');
+        startKdaRealtimeListener();
+    } else if (mode === 'HSR') {
+        kdaTitleBtn.classList.remove('active');
+        hsrTitleBtn.classList.add('active');
+        kdaContent.classList.add('hidden');
+        kdaContent.classList.remove('active');
+        hsrContent.classList.add('active');
+        hsrContent.classList.remove('hidden');
+        startHsrRealtimeListener();
+    }
+}
+
+if (addGameBtn) {
+    addGameBtn.addEventListener('click', addGame);
+}
+
+if (addHsrBtn) {
+    addHsrBtn.addEventListener('click', addHSR);
+}
+
+if (kdaTitleBtn) {
+    kdaTitleBtn.addEventListener('click', () => {
+        switchTrackerMode('KDA');
+    });
+}
+
+if (hsrTitleBtn) {
+    hsrTitleBtn.addEventListener('click', () => {
+        switchTrackerMode('HSR');
     });
 }
 
 
 // Start the application
 setInitialDate();
-startRealtimeListener();
+// Start with KDA mode active
+switchTrackerMode('KDA');

@@ -21,6 +21,14 @@ body {
     margin-top: 30px; 
 }
 
+/* NEW: Visibility toggles for tracker content */
+.tracker-content.hidden {
+    display: none;
+}
+.tracker-content.active {
+    display: block;
+}
+
 /* NEW: Mode Selector Styling */
 .mode-selector {
     display: flex;
@@ -50,6 +58,7 @@ body {
     border-bottom: 2px solid #FFC300; /* Active Gold underline */
     color: #FFD700;
 }
+
 
 /* Container for the new title buttons (KDA and HSR) */
 .title-button-group {
@@ -114,7 +123,7 @@ h2 {
     text-align: right;
     margin-top: 10px;
 }
-#reset-zoom-btn {
+#reset-zoom-btn-kda, #reset-zoom-btn-hsr {
     padding: 5px 10px;
     background-color: #333;
     color: #FFC300; 
@@ -125,7 +134,7 @@ h2 {
     font-size: 0.8em;
     transition: background-color 0.2s;
 }
-#reset-zoom-btn:hover {
+#reset-zoom-btn-kda:hover, #reset-zoom-btn-hsr:hover {
     background-color: #444;
 }
 
@@ -149,7 +158,7 @@ h2 {
 }
 
 
-/* --- KDA Summary INLINE --- */
+/* --- KDA Summary INLINE (used for HSR summary too) --- */
 .kda-summary-inline {
     text-align: center;
     padding: 8px; 
@@ -162,7 +171,7 @@ h2 {
     margin: 0 0 5px 0;
 }
 
-#overall-kda {
+#overall-kda, #overall-hsr {
     font-size: 1.5em;
     font-weight: bold;
     color: #FFC300; /* Gold */
@@ -181,8 +190,8 @@ input[type="number"], input[type="date"] {
     box-sizing: border-box;
 }
 
-/* Log Game Button */
-#add-game-btn {
+/* Log Game Button (used for KDA and HSR) */
+#add-game-btn, #add-hsr-btn {
     width: 100%;
     padding: 10px;
     background-color: #FFC300; /* Gold Fill */
@@ -196,22 +205,22 @@ input[type="number"], input[type="date"] {
     transition: background-color 0.2s;
 }
 
-#add-game-btn:hover {
+#add-game-btn:hover, #add-hsr-btn:hover {
     background-color: #FFD700; /* Lighter Gold on hover */
 }
 
-/* Game History List */
+/* Game History List (used for KDA and HSR) */
 .history-header {
     margin-top: 20px; 
 }
 
-#game-list {
+#kda-list, #hsr-list {
     list-style: none;
     padding: 0;
 }
 
 /* Default (Desktop) List Item Layout */
-#game-list li {
+#kda-list li, #hsr-list li {
     background-color: #282828;
     margin-bottom: 5px; 
     padding: 8px 12px; 
@@ -285,6 +294,8 @@ input[type="number"], input[type="date"] {
     border-radius: 6px;
     margin-top: 10px;
     text-align: center;
+    /* Moved outside tracker content so it can be seen from both views */
+    /* It is handled in the HTML to be outside now */
     display: none;
     font-weight: bold;
 }
@@ -332,7 +343,7 @@ input[type="number"], input[type="date"] {
     }
     
     /* HISTORY LIST: Stack content vertically for readability */
-    #game-list li {
+    #kda-list li, #hsr-list li {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
