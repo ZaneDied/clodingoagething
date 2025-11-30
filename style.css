@@ -21,7 +21,7 @@ body {
     margin-top: 30px; 
 }
 
-/* --- Mode Selector Styling --- */
+/* NEW: Mode Selector Styling */
 .mode-selector {
     display: flex;
     gap: 5px;
@@ -114,8 +114,8 @@ h2 {
     gap: 10px; 
 }
 
-/* KDA Inputs: Desktop uses flex-row for small horizontal layout */
-.kda-inputs { 
+/* KDA Inputs: Desktop uses inline-block/flex-row for small horizontal layout */
+.kda-inputs {
     display: flex;
     gap: 5px;
 }
@@ -137,7 +137,7 @@ h2 {
     margin: 0 0 5px 0;
 }
 
-#overall-metric-display {
+#overall-kda {
     font-size: 1.5em;
     font-weight: bold;
     color: #FFC300; /* Gold */
@@ -191,9 +191,8 @@ input[type="number"], input[type="date"] {
     margin-bottom: 5px; 
     padding: 8px 12px; 
     border-radius: 6px;
-    display: grid; 
-    grid-template-columns: 100px 1fr 1fr auto; /* Date | Score | Ratio | Buttons */
-    gap: 10px;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
     border-left: 5px solid #FFC300; /* Gold Accent */
 }
@@ -202,21 +201,25 @@ input[type="number"], input[type="date"] {
     color: #aaa;
     font-size: 0.9em;
     font-weight: bold;
+    width: 100px; 
 }
 
 .daily-score {
     font-weight: bold;
+    flex-grow: 0; 
+    margin-right: 10px; 
 }
 
 .daily-kda-ratio {
-    /* Aligned by grid */
+    margin-left: auto;
+    /* 2px gap requested between KDA count and Edit button (which is in action-buttons) */
+    margin-right: 2px; 
 }
 
 /* --- ACTION BUTTON STYLES --- */
 .action-buttons {
     display: flex;
     gap: 5px;
-    justify-self: end; /* Align to end of grid column */
 }
 
 .action-buttons button {
@@ -300,7 +303,6 @@ input[type="number"], input[type="date"] {
     
     /* HISTORY LIST: Stack content vertically for readability */
     #game-list li {
-        display: flex; /* Switch back to flex for stacking */
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
