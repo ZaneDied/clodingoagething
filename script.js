@@ -38,16 +38,29 @@ const db = getFirestore(app);
 const userId = 'PUBLIC'; 
 
 // =================================================================
-// 2. UI Elements and Utilities
+// 2. UI Elements, Utilities, and GLOBAL STATE
 // =================================================================
 
+// --- Global State for Mode ---
+let currentMode = 'KDA'; // Always defaults to KDA now
+
+// --- KDA Inputs ---
 const dateInput = document.getElementById('date-input');
 const killsInput = document.getElementById('kills-input');
 const deathsInput = document.getElementById('deaths-input');
 const assistsInput = document.getElementById('assists-input');
+
+// --- Input Group ---
+const kdaInputGroup = document.getElementById('kda-input-group');
+
+
+// --- Buttons & Displays ---
 const addGameBtn = document.getElementById('add-game-btn');
+const modeKdaBtn = document.getElementById('mode-kda-btn');
+const modeHsrBtn = document.getElementById('mode-hsr-btn');
 const gameList = document.getElementById('game-list'); 
-const overallKdaDisplay = document.getElementById('overall-kda');
+const overallMetricDisplay = document.getElementById('overall-metric-display'); 
+const overallMetricTitle = document.getElementById('overall-metric-title');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
 const resetZoomBtn = document.getElementById('reset-zoom-btn');
@@ -72,6 +85,7 @@ function displayMessage(message, type) {
 // Utility function to format KDA (Kills + Assists) / Deaths
 function calculateKda(kills, deaths, assists) {
     if (deaths === 0) {
+        // If deaths is 0, return K+A value (usually referred to as perfect)
         return (kills + assists).toFixed(2);
     }
     return ((kills + assists) / deaths).toFixed(2);
@@ -79,7 +93,6 @@ function calculateKda(kills, deaths, assists) {
 
 // Defines the collection path.
 const getCollectionPath = () => {
-    // Note: The context has shifted to 'Restaurant' but the data remains 'games'. 
     return `users/${userId}/games`; 
 };
 
@@ -100,25 +113,76 @@ function setInitialDate() {
 
 
 // =================================================================
-// 3. LOGIC: ADDING AND AGGREGATING A GAME
+// 3. LOGIC: MODE SWITCHING (Simplified)
+// =================================================================
+
+const switchMode = (mode) => {
+    // This is purely for visual feedback for the user
+    currentMode = mode; 
+
+    modeKdaBtn.classList.remove('active');
+    modeHsrBtn.classList.remove('active');
+    
+    document.getElementById(`mode-${mode.toLowerCase()}-btn`).classList.add('active');
+
+    // The logic below ensures that even if HSR is selected, KDA inputs remain visible 
+    // and the core logic remains KDA (until HSR features are fully implemented).
+    if (mode === 'KDA') {
+        overallMetricTitle.textContent = 'Overall Career KDA (K+A/D)';
+    } else { // HSR Mode
+        overallMetricTitle.textContent = 'Overall Career HSR (Data N/A)';
+    }
+    
+    // Clear inputs when switching mode
+    killsInput.value = '';
+    deathsInput.value = '';
+    assistsInput.value = '';
+    
+    // Reset button state (in case we were in edit mode)
+    addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
+    addGameBtn.style.backgroundColor = '#FFC300';
+    addGameBtn.removeEventListener('click', handleUpdateClick);
+    
+    // Ensure the addGame listener is always active 
+    if (!addGameBtn.hasAttribute('data-has-add-listener')) {
+        addGameBtn.addEventListener('click', addGame);
+        addGameBtn.setAttribute('data-has-add-listener', 'true');
+    }
+};
+
+modeKdaBtn.addEventListener('click', () => switchMode('KDA'));
+modeHsrBtn.addEventListener('click', () => switchMode('HSR')); // Toggles style but keeps KDA logic active
+
+// =================================================================
+// 4. LOGIC: ADDING AND AGGREGATING A GAME
 // =================================================================
 
 const addGame = async () => {
     const gameDate = dateInput.value;
+    
+    if (currentMode === 'HSR') {
+        displayMessage("HSR mode is currently visual only. Please log KDA data.", 'error');
+        return;
+    }
+    
+    if (!gameDate) {
+        displayMessage("Please enter a valid date.", 'error');
+        return;
+    }
+    
     const kills = parseInt(killsInput.value) || 0;
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
     
-    if (!gameDate || kills < 0 || deaths < 0 || assists < 0) {
-        displayMessage("Please enter a valid date and positive KDA scores.", 'error');
-        return;
+    if (kills < 0 || deaths < 0 || assists < 0) {
+         displayMessage("Please enter valid positive scores.", 'error');
+         return;
     }
-
-    const path = getCollectionPath();
-    const docRef = doc(db, path, gameDate); 
     
     try {
+        const docRef = doc(db, getCollectionPath(), gameDate); 
         const docSnap = await getDoc(docRef);
+        
         let existingKills = 0;
         let existingDeaths = 0;
         let existingAssists = 0;
@@ -133,19 +197,22 @@ const addGame = async () => {
         const newTotalKills = existingKills + kills;
         const newTotalDeaths = existingDeaths + deaths;
         const newTotalAssists = existingAssists + assists;
-        
         const newKdaRatio = parseFloat(calculateKda(newTotalKills, newTotalDeaths, newTotalAssists));
 
-        await setDoc(docRef, {
+        const updateData = {
             date: gameDate, 
             totalKills: newTotalKills,
             totalDeaths: newTotalDeaths,
             totalAssists: newTotalAssists,
             kdaRatio: newKdaRatio
-        }, { merge: true }); 
+        };
+
+        // Aggregation: merge true adds to existing fields/creates new document
+        await setDoc(docRef, updateData, { merge: true }); 
         
-        displayMessage(`Game Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
+        displayMessage(`KDA Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
         
+        // Clear inputs
         killsInput.value = '';
         deathsInput.value = '';
         assistsInput.value = '';
@@ -156,17 +223,17 @@ const addGame = async () => {
     }
 };
 
+
 if (addGameBtn) {
     addGameBtn.addEventListener('click', addGame);
+    addGameBtn.setAttribute('data-has-add-listener', 'true'); // Mark that the listener is attached
 }
 
 // =================================================================
-// 4. LOGIC: DELETE & EDIT FUNCTIONS
+// 5. LOGIC: DELETE & EDIT FUNCTIONS (Simplified)
 // =================================================================
 
 const deleteKdaEntry = async (dateString) => {
-    // IMPORTANT: Use custom modal instead of built-in confirm()
-    // For now, keeping confirm as a fallback/simple implementation
     if (!confirm(`Are you sure you want to delete the daily total for ${dateString}?`)) {
         return;
     }
@@ -194,8 +261,9 @@ const editKdaEntry = (dailyData) => {
     addGameBtn.textContent = `UPDATE DAILY TOTAL (${dailyData.date})`;
     addGameBtn.style.backgroundColor = '#f39c12'; // Temporary orange for UX differentiation
     
-    // 3. Remove the old event listener and add a temporary one for the update
+    // 3. Remove the aggregation listener and add a temporary one for the update
     addGameBtn.removeEventListener('click', addGame);
+    addGameBtn.removeAttribute('data-has-add-listener');
     addGameBtn.addEventListener('click', handleUpdateClick);
     
     displayMessage(`Ready to edit/replace daily total for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
@@ -204,29 +272,30 @@ const editKdaEntry = (dailyData) => {
 
 const handleUpdateClick = async () => {
     const gameDate = dateInput.value;
+    
     const kills = parseInt(killsInput.value) || 0;
     const deaths = parseInt(deathsInput.value) || 0;
     const assists = parseInt(assistsInput.value) || 0;
     
-    if (!gameDate || kills < 0 || deaths < 0 || assists < 0) {
-        displayMessage("Please enter a valid date and positive KDA scores.", 'error');
+    if (kills < 0 || deaths < 0 || assists < 0) {
+        displayMessage("Please enter valid positive scores.", 'error');
         return;
     }
 
-    const path = getCollectionPath();
-    const docRef = doc(db, path, gameDate); 
+    const newKdaRatio = parseFloat(calculateKda(kills, deaths, assists));
     
+    const updateData = {
+        date: gameDate, 
+        totalKills: kills,
+        totalDeaths: deaths,
+        totalAssists: assists,
+        kdaRatio: newKdaRatio
+    };
+
     try {
-        const newKdaRatio = parseFloat(calculateKda(kills, deaths, assists));
-        
-        // Use setDoc without merge to COMPLETELY OVERWRITE the daily total
-        await setDoc(docRef, {
-            date: gameDate, 
-            totalKills: kills,
-            totalDeaths: deaths,
-            totalAssists: assists,
-            kdaRatio: newKdaRatio
-        });
+        const docRef = doc(db, getCollectionPath(), gameDate); 
+        // Overwrite the document with the new total
+        await setDoc(docRef, updateData); 
         
         displayMessage(`Successfully updated daily total for ${gameDate}.`, 'success');
         
@@ -234,13 +303,14 @@ const handleUpdateClick = async () => {
         killsInput.value = '';
         deathsInput.value = '';
         assistsInput.value = '';
+        
         addGameBtn.textContent = 'Log Game (Aggregates to Daily Total)';
-        addGameBtn.style.backgroundColor = '#FFC300'; // Reset to new Gold theme color
+        addGameBtn.style.backgroundColor = '#FFC300';
         
         // Restore the original event listener (for aggregation)
         addGameBtn.removeEventListener('click', handleUpdateClick);
         addGameBtn.addEventListener('click', addGame);
-
+        addGameBtn.setAttribute('data-has-add-listener', 'true');
 
     } catch (error) {
         console.error("ERROR: Could not update document.", error);
@@ -250,7 +320,7 @@ const handleUpdateClick = async () => {
 
 
 // =================================================================
-// 5. LISTENER & DISPLAY (Zoom Logic and Empty Data Handling)
+// 6. LISTENER & DISPLAY (Simplified)
 // =================================================================
 
 function initializeChart() {
@@ -268,9 +338,8 @@ function initializeChart() {
         data: {
             labels: [], 
             datasets: [{
-                label: 'KDA Ratio',
+                label: 'KDA Ratio', 
                 data: [], 
-                // Gold Chart Line
                 borderColor: '#FFC300', 
                 backgroundColor: 'rgba(255, 195, 0, 0.2)',
                 borderWidth: 2,
@@ -289,7 +358,7 @@ function initializeChart() {
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 },
                 y: {
-                    title: { display: true, text: 'KDA', color: '#f0f0f0' },
+                    title: { display: true, text: 'KDA', color: '#f0f0f0' }, 
                     ticks: { color: '#f0f0f0', beginAtZero: true },
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 }
@@ -297,25 +366,14 @@ function initializeChart() {
             plugins: {
                 legend: { display: false },
                 zoom: {
-                    pan: {
-                        enabled: true, 
-                        mode: 'x', 
-                    },
+                    pan: { enabled: true, mode: 'x' },
                     zoom: {
-                        wheel: {
-                            enabled: true, 
-                            modifierKey: 'ctrl', 
-                        },
-                        pinch: {
-                            enabled: true 
-                        },
+                        wheel: { enabled: true, modifierKey: 'ctrl' },
+                        pinch: { enabled: true },
                         mode: 'y', 
                         sensitivity: 10,
                     },
-                    limits: {
-                         x: { minRange: 1 }, 
-                         y: { minRange: 0.1 } 
-                    }
+                    limits: { x: { minRange: 1 }, y: { minRange: 0.1 } }
                 }
             }
         }
@@ -335,20 +393,21 @@ function updateOverallKDA(allGames) {
     });
 
     if (careerKills + careerAssists === 0 && careerDeaths === 0) {
-        overallKdaDisplay.textContent = '0.00';
+        overallMetricDisplay.textContent = '0.00';
     } else {
-        const overallKda = calculateKda(careerKills, careerDeaths, careerAssists);
-        overallKdaDisplay.textContent = overallKda;
+        overallMetricDisplay.textContent = calculateKda(careerKills, careerDeaths, careerAssists);
     }
 }
 
 function updateChart(allGames) {
     if (!kdaChart) return;
+    if (!allGames) return;
     
     const sortedGames = allGames.sort((a, b) => a.date.localeCompare(b.date));
     
     kdaChart.data.labels = sortedGames.map(game => game.date);
     kdaChart.data.datasets[0].data = sortedGames.map(game => game.kdaRatio);
+    
     kdaChart.update();
 }
 
@@ -356,7 +415,6 @@ function updateChart(allGames) {
 function startRealtimeListener() {
     initializeChart(); 
 
-    // Attach event listener for the Reset Zoom button after initialization
     if (kdaChart && resetZoomBtn) {
         resetZoomBtn.style.display = 'inline-block';
         resetZoomBtn.addEventListener('click', () => {
@@ -383,16 +441,13 @@ function startRealtimeListener() {
             // Filter out random Firestore IDs (only accept YYYY-MM-DD format)
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 
-                // CRITICAL FIX: Explicitly convert to number for all fields to prevent crashes
+                // CRITICAL FIX: Explicitly convert all fields to number
                 const kills = parseInt(dailyData.totalKills) || 0;
                 const deaths = parseInt(dailyData.totalDeaths) || 0;
                 const assists = parseInt(dailyData.totalAssists) || 0;
                 
-                let kdaRatio = parseFloat(dailyData.kdaRatio);
-                // Re-calculate if the stored ratio is missing or invalid (NaN)
-                if (isNaN(kdaRatio)) {
-                    kdaRatio = parseFloat(calculateKda(kills, deaths, assists));
-                }
+                let kdaRatio = parseFloat(dailyData.kdaRatio) || 0;
+                if (isNaN(kdaRatio)) kdaRatio = parseFloat(calculateKda(kills, deaths, assists));
 
                 allDailyData.push({
                     date: dateString,
@@ -466,3 +521,4 @@ function startRealtimeListener() {
 // Start the application
 setInitialDate();
 startRealtimeListener();
+switchMode('KDA');

@@ -21,12 +21,7 @@ body {
     margin-top: 30px; 
 }
 
-/* NEW: Hide elements based on mode */
-.hidden {
-    display: none !important;
-}
-
-/* NEW: Mode Selector Styling */
+/* --- Mode Selector Styling --- */
 .mode-selector {
     display: flex;
     gap: 5px;
@@ -119,12 +114,12 @@ h2 {
     gap: 10px; 
 }
 
-/* KDA and HSR Inputs: Desktop uses inline-block/flex-row for small horizontal layout */
-.kda-inputs, .hsr-inputs { 
+/* KDA Inputs: Desktop uses flex-row for small horizontal layout */
+.kda-inputs { 
     display: flex;
     gap: 5px;
 }
-.kda-inputs input, .hsr-inputs input {
+.kda-inputs input {
     flex-grow: 1;
 }
 
@@ -142,7 +137,7 @@ h2 {
     margin: 0 0 5px 0;
 }
 
-#overall-metric-display { /* Updated ID */
+#overall-metric-display {
     font-size: 1.5em;
     font-weight: bold;
     color: #FFC300; /* Gold */
@@ -196,9 +191,8 @@ input[type="number"], input[type="date"] {
     margin-bottom: 5px; 
     padding: 8px 12px; 
     border-radius: 6px;
-    /* Now includes all KDA/HSR stats */
     display: grid; 
-    grid-template-columns: 100px 1fr 1fr auto;
+    grid-template-columns: 100px 1fr 1fr auto; /* Date | Score | Ratio | Buttons */
     gap: 10px;
     align-items: center;
     border-left: 5px solid #FFC300; /* Gold Accent */
@@ -208,17 +202,14 @@ input[type="number"], input[type="date"] {
     color: #aaa;
     font-size: 0.9em;
     font-weight: bold;
-    /* width: 100px; - Removed for Grid */
 }
 
 .daily-score {
     font-weight: bold;
-    /* flex-grow: 0; - Removed for Grid */
 }
 
 .daily-kda-ratio {
-    /* margin-left: auto; - Removed for Grid */
-    /* margin-right: 2px; - Removed for Grid */
+    /* Aligned by grid */
 }
 
 /* --- ACTION BUTTON STYLES --- */
@@ -301,8 +292,8 @@ input[type="number"], input[type="date"] {
         height: auto; 
     }
 
-    /* KDA & HSR Inputs: Stack vertically for easier tapping */
-    .kda-inputs, .hsr-inputs {
+    /* KDA Inputs: Stack vertically for easier tapping */
+    .kda-inputs {
         flex-direction: column;
         gap: 10px; 
     }
