@@ -51,8 +51,11 @@ const overallKdaDisplay = document.getElementById('overall-kda');
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
 const resetZoomBtn = document.getElementById('reset-zoom-btn');
-// NEW: Select the new KDA title button
-const kdaTitleBtn = document.getElementById('kda-title-btn');
+
+// NEW: Select the KDA and HSR mode buttons
+const kdaModeBtn = document.getElementById('mode-kda-btn');
+const hsrModeBtn = document.getElementById('mode-hsr-btn');
+
 
 let kdaChart; // Global variable to hold the Chart.js instance
 
@@ -79,9 +82,9 @@ function calculateKda(kills, deaths, assists) {
     return ((kills + assists) / deaths).toFixed(2);
 }
 
-// Defines the collection path.
+// Defines the collection path. (Currently hardcoded to 'games' for KDA)
 const getCollectionPath = () => {
-    // Note: The context has shifted to 'Restaurant' but the data remains 'games'. 
+    // This function should be updated when HSR logic is implemented
     return `users/${userId}/games`; 
 };
 
@@ -162,11 +165,23 @@ if (addGameBtn) {
     addGameBtn.addEventListener('click', addGame);
 }
 
-// NEW: Add handler for the KDA button (Example)
-if (kdaTitleBtn) {
-    kdaTitleBtn.addEventListener('click', () => {
-        displayMessage("KDA Title button clicked!", 'success');
-        // You can attach a specific feature or navigation here later.
+// NEW: Handlers for the KDA and HSR buttons
+if (kdaModeBtn) {
+    kdaModeBtn.addEventListener('click', () => {
+        // Toggle active class and potentially load KDA data
+        kdaModeBtn.classList.add('active');
+        hsrModeBtn.classList.remove('active');
+        // Future: Add logic to switch data view here
+    });
+}
+
+if (hsrModeBtn) {
+    hsrModeBtn.addEventListener('click', () => {
+        // Toggle active class and potentially load HSR data
+        hsrModeBtn.classList.add('active');
+        kdaModeBtn.classList.remove('active');
+        // Future: Add logic to switch data view here
+        displayMessage("HSR mode selected! (Functionality not yet implemented)", 'success');
     });
 }
 
