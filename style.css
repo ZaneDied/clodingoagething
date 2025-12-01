@@ -482,6 +482,95 @@ input[type="date"] {
     border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
+/* History Grouping Styles */
+.history-day-group {
+    margin-bottom: 15px;
+    background-color: #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #444;
+}
+
+.daily-summary {
+    padding: 12px 15px;
+    background-color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #444;
+}
+
+.daily-summary .daily-date {
+    font-weight: 600;
+    color: #FFC300;
+}
+
+.game-logs-container {
+    padding: 10px 15px;
+    background-color: #222;
+}
+
+.game-log-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    margin-left: 10px;
+    border-left: 2px solid #444;
+    padding-left: 15px;
+    position: relative;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+.game-log-item:last-child {
+    border-left: 2px solid transparent;
+    /* Stop the line for the last item */
+}
+
+/* Fix for the continuous line effect */
+.game-logs-container {
+    position: relative;
+}
+
+.game-logs-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 15px;
+    /* Stop before the bottom */
+    left: 25px;
+    /* Adjust based on padding/margin */
+    width: 2px;
+    background-color: #444;
+    z-index: 0;
+}
+
+.game-log-item::before {
+    content: '';
+    position: absolute;
+    left: -6px;
+    /* Center on the border line */
+    top: 50%;
+    width: 10px;
+    height: 10px;
+    background-color: #555;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    border: 2px solid #222;
+}
+
+.game-log-details {
+    display: flex;
+    gap: 15px;
+}
+
+.game-log-metric {
+    color: #fff;
+    font-weight: 500;
+}
+
 /* Timeline (Past/Present/Future) */
 .elo-timeline {
     display: flex;

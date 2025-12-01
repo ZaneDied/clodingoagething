@@ -7,7 +7,9 @@ import {
     setDoc,
     deleteDoc,
     query,
-    onSnapshot
+    onSnapshot,
+    arrayUnion,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
 // Global variables provided by the environment (if running in a special environment)
@@ -196,7 +198,14 @@ const addGame = async () => {
             totalDeaths: newTotalDeaths,
             totalAssists: newTotalAssists,
             kdaRatio: newKdaRatio,
-            gamesCount: newGamesCount // Track individual games
+            gamesCount: newGamesCount, // Track individual games
+            logs: arrayUnion({
+                timestamp: Timestamp.now(),
+                kills: kills,
+                deaths: deaths,
+                assists: assists,
+                kda: parseFloat(calculateKda(kills, deaths, assists))
+            })
         }, { merge: true });
 
         displayMessage(`Game #${newGamesCount} Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
@@ -322,7 +331,11 @@ const addHSR = async () => {
         await setDoc(docRef, {
             date: gameDate,
             hsrRate: hsrRate,
-            entryCount: newEntryCount
+            entryCount: newEntryCount,
+            logs: arrayUnion({
+                timestamp: Timestamp.now(),
+                hsrRate: hsrRate
+            })
         }, { merge: true });
 
         displayMessage(`HSR Entry #${newEntryCount} Logged! Rate for ${gameDate}: ${hsrRate.toFixed(2)}%`, 'success');
@@ -436,7 +449,11 @@ const addADR = async () => {
         await setDoc(docRef, {
             date: gameDate,
             adrValue: adrValue,
-            entryCount: newEntryCount
+            entryCount: newEntryCount,
+            logs: arrayUnion({
+                timestamp: Timestamp.now(),
+                adrValue: adrValue
+            })
         }, { merge: true });
 
         displayMessage(`ADR Entry #${newEntryCount} Logged! Value for ${gameDate}: ${adrValue.toFixed(1)}`, 'success');
@@ -696,6 +713,7 @@ function startKdaRealtimeListener() {
                 const deaths = parseInt(dailyData.totalDeaths) || 0;
                 const assists = parseInt(dailyData.totalAssists) || 0;
                 const gamesCount = parseInt(dailyData.gamesCount) || 1;
+                const logs = dailyData.logs || [];
 
                 let kdaRatio = parseFloat(dailyData.kdaRatio);
                 if (isNaN(kdaRatio)) {
@@ -708,7 +726,8 @@ function startKdaRealtimeListener() {
                     totalDeaths: deaths,
                     totalAssists: assists,
                     kdaRatio: kdaRatio,
-                    gamesCount: gamesCount
+                    gamesCount: gamesCount,
+                    logs: logs
                 });
             }
         });
@@ -723,17 +742,46 @@ function startKdaRealtimeListener() {
             const scoreText = `${dailyData.totalKills}/${dailyData.totalDeaths}/${dailyData.totalAssists}`;
             const kdaRatioText = `KDA: ${calculateKda(dailyData.totalKills, dailyData.totalDeaths, dailyData.totalAssists)}`;
             const gamesText = dailyData.gamesCount > 1 ? ` (${dailyData.gamesCount} games)` : ` (1 game)`;
+            const logs = dailyData.logs || [];
 
             const li = document.createElement('li');
+            li.className = 'history-day-group';
+
+            let logsHtml = '';
+            if (logs.length > 0) {
+                logsHtml = `<div class="game-logs-container">`;
+                logs.forEach((log, index) => {
+                    // Handle timestamp conversion safely
+                    let timeStr = `Game ${index + 1}`;
+                    if (log.timestamp && log.timestamp.seconds) {
+                        timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    logsHtml += `
+                        <div class="game-log-item">
+                            <span class="game-log-time">${timeStr}</span>
+                            <div class="game-log-details">
+                                <span class="game-log-metric">KDA: ${log.kda ? log.kda.toFixed(2) : 'N/A'}</span>
+                                <span class="game-log-metric" style="color: #aaa;">${log.kills}/${log.deaths}/${log.assists}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                logsHtml += `</div>`;
+            }
+
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}${gamesText}</span>
-                <span class="daily-score">Scores: ${scoreText}</span>
-                <span class="daily-kda-ratio">${kdaRatioText}</span>
-                
-                <div class="action-buttons">
-                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
-                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                <div class="daily-summary">
+                    <div>
+                        <span class="daily-date">${dailyData.date}${gamesText}</span>
+                        <div style="font-size: 0.85em; color: #aaa; margin-top: 4px;">Daily Avg: ${kdaRatioText} | Total: ${scoreText}</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                        <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                    </div>
                 </div>
+                ${logsHtml}
             `;
             kdaList.appendChild(li);
 
@@ -775,11 +823,13 @@ function startHsrRealtimeListener() {
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 const hsrRate = parseFloat(dailyData.hsrRate) || 0;
                 const entryCount = parseInt(dailyData.entryCount) || 1;
+                const logs = dailyData.logs || [];
 
                 allDailyData.push({
                     date: dateString,
                     hsrRate: hsrRate,
-                    entryCount: entryCount
+                    entryCount: entryCount,
+                    logs: logs
                 });
             }
         });
@@ -793,15 +843,44 @@ function startHsrRealtimeListener() {
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.hsrRate.toFixed(2)}%`;
             const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
+            const logs = dailyData.logs || [];
 
             const li = document.createElement('li');
+            li.className = 'history-day-group';
+
+            let logsHtml = '';
+            if (logs.length > 0) {
+                logsHtml = `<div class="game-logs-container">`;
+                logs.forEach((log, index) => {
+                    let timeStr = `Entry ${index + 1}`;
+                    if (log.timestamp && log.timestamp.seconds) {
+                        timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    logsHtml += `
+                        <div class="game-log-item">
+                            <span class="game-log-time">${timeStr}</span>
+                            <div class="game-log-details">
+                                <span class="game-log-metric">Rate: ${log.hsrRate.toFixed(2)}%</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                logsHtml += `</div>`;
+            }
+
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}${entriesText}</span>
-                <span class="daily-score">Rate: ${scoreText}</span>
-                <div class="action-buttons">
-                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
-                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                <div class="daily-summary">
+                    <div>
+                        <span class="daily-date">${dailyData.date}${entriesText}</span>
+                        <div style="font-size: 0.85em; color: #aaa; margin-top: 4px;">Daily Rate: ${scoreText}</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                        <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                    </div>
                 </div>
+                ${logsHtml}
             `;
             hsrList.appendChild(li);
 
@@ -843,11 +922,13 @@ function startAdrRealtimeListener() {
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 const adrValue = parseFloat(dailyData.adrValue) || 0;
                 const entryCount = parseInt(dailyData.entryCount) || 1;
+                const logs = dailyData.logs || [];
 
                 allDailyData.push({
                     date: dateString,
                     adrValue: adrValue,
-                    entryCount: entryCount
+                    entryCount: entryCount,
+                    logs: logs
                 });
             }
         });
@@ -861,15 +942,44 @@ function startAdrRealtimeListener() {
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.adrValue.toFixed(1)}`;
             const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
+            const logs = dailyData.logs || [];
 
             const li = document.createElement('li');
+            li.className = 'history-day-group';
+
+            let logsHtml = '';
+            if (logs.length > 0) {
+                logsHtml = `<div class="game-logs-container">`;
+                logs.forEach((log, index) => {
+                    let timeStr = `Entry ${index + 1}`;
+                    if (log.timestamp && log.timestamp.seconds) {
+                        timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    }
+
+                    logsHtml += `
+                        <div class="game-log-item">
+                            <span class="game-log-time">${timeStr}</span>
+                            <div class="game-log-details">
+                                <span class="game-log-metric">ADR: ${log.adrValue.toFixed(1)}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                logsHtml += `</div>`;
+            }
+
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}${entriesText}</span>
-                <span class="daily-score">ADR: ${scoreText}</span>
-                <div class="action-buttons">
-                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
-                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                <div class="daily-summary">
+                    <div>
+                        <span class="daily-date">${dailyData.date}${entriesText}</span>
+                        <div style="font-size: 0.85em; color: #aaa; margin-top: 4px;">Daily Value: ${scoreText}</div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                        <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                    </div>
                 </div>
+                ${logsHtml}
             `;
             adrList.appendChild(li);
 
@@ -1148,11 +1258,20 @@ async function calculateEloMetrics(metricType) {
         // Calculate Time Invested
         const timeInvested = totalGames * ELO_CONSTANTS.MINUTES_PER_GAME;
 
-        // Count games per day
+        // Count games per day (using actual counts)
         const gamesPerDay = {};
-        games.forEach(game => {
-            const dateKey = game.date;
-            gamesPerDay[dateKey] = (gamesPerDay[dateKey] || 0) + 1;
+        gamesSnapshot.forEach((doc) => {
+            const data = doc.data();
+            const dateKey = doc.id;
+            let count = 1;
+
+            if (metricType === 'kda') {
+                count = parseInt(data.gamesCount) || 1;
+            } else {
+                count = parseInt(data.entryCount) || 1;
+            }
+
+            gamesPerDay[dateKey] = count;
         });
 
         // Prepare ELO metrics object
@@ -1231,11 +1350,31 @@ async function updateEloDisplay() {
             document.getElementById('overall-elo-rank').textContent = Math.round(avgElo);
         }
 
-        // Update total time invested
-        const totalTime = validMetrics.reduce((sum, m) => sum + m.timeInvested, 0);
+        // Update total time invested (MAX logs per day logic)
+        // 1. Collect all unique dates
+        const allDates = new Set();
+        const kdaGames = kdaMetrics?.gamesPerDay || {};
+        const hsrGames = hsrMetrics?.gamesPerDay || {};
+        const adrGames = adrMetrics?.gamesPerDay || {};
+
+        Object.keys(kdaGames).forEach(d => allDates.add(d));
+        Object.keys(hsrGames).forEach(d => allDates.add(d));
+        Object.keys(adrGames).forEach(d => allDates.add(d));
+
+        // 2. Sum max games for each date
+        let totalMaxGames = 0;
+        allDates.forEach(date => {
+            const kdaCount = kdaGames[date] || 0;
+            const hsrCount = hsrGames[date] || 0;
+            const adrCount = adrGames[date] || 0;
+            const maxForDay = Math.max(kdaCount, hsrCount, adrCount);
+            totalMaxGames += maxForDay;
+        });
+
+        const totalTime = totalMaxGames * 30; // 30 mins per game
         const hours = Math.floor(totalTime / 60);
         const minutes = totalTime % 60;
-        console.log('Total time:', hours, 'hours', minutes, 'minutes');
+        console.log('Total time (Max Logs Logic):', hours, 'hours', minutes, 'minutes');
         document.getElementById('total-time-invested').textContent = `${hours} hours ${minutes} minutes`;
 
         console.log('=== ELO Display Update Complete ===');
