@@ -225,6 +225,31 @@
         </div>
     </div>
 
+    <!-- Edit Log Modal -->
+    <div id="edit-log-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Game Log</h3>
+                <span class="close-modal">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="edit-log-form">
+                    <input type="hidden" id="edit-metric-type">
+                    <input type="hidden" id="edit-log-date">
+                    <input type="hidden" id="edit-log-id">
+
+                    <div id="edit-fields-container">
+                        <!-- Fields injected dynamically -->
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="modal-btn cancel-btn" id="cancel-edit-btn">Cancel</button>
+                <button type="button" class="modal-btn save-btn" id="save-edit-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="script.js"></script>
 </body>
 

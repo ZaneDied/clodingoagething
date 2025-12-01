@@ -1601,54 +1601,143 @@ window.editIndividualLog = async (metricType, date, logId) => {
 
         const data = docSnap.data();
         const logs = data.logs || [];
-        const logIndex = logs.findIndex(log => (log.id || 'legacy') === logId);
+        const log = logs.find(l => (l.id || 'legacy') === logId);
 
-        if (logIndex === -1) return;
+        if (!log) return;
 
-        const log = logs[logIndex];
-        let newLog = { ...log };
+        // Populate Modal
+        const modal = document.getElementById('edit-log-modal');
+        const formContainer = document.getElementById('edit-fields-container');
+
+        document.getElementById('edit-metric-type').value = metricType;
+        document.getElementById('edit-log-date').value = date;
+        document.getElementById('edit-log-id').value = logId;
+
+        formContainer.innerHTML = ''; // Clear previous fields
 
         if (metricType === 'kda') {
-            const k = prompt('Enter Kills:', log.kills);
-            const d = prompt('Enter Deaths:', log.deaths);
-            const a = prompt('Enter Assists:', log.assists);
-
-            if (k === null || d === null || a === null) return;
-
-            newLog.kills = parseInt(k) || 0;
-            newLog.deaths = parseInt(d) || 0;
-            newLog.assists = parseInt(a) || 0;
-            newLog.kda = parseFloat(calculateKda(newLog.kills, newLog.deaths, newLog.assists));
-
+            formContainer.innerHTML = `
+                <div class="form-group">
+                    <label>Kills</label>
+                    <input type="number" id="edit-kills" value="${log.kills}" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Deaths</label>
+                    <input type="number" id="edit-deaths" value="${log.deaths}" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Assists</label>
+                    <input type="number" id="edit-assists" value="${log.assists}" min="0">
+                </div>
+            `;
         } else if (metricType === 'hsr') {
-            const rate = prompt('Enter Headshot Rate (%):', log.hsrRate);
-            if (rate === null) return;
-            newLog.hsrRate = parseFloat(rate) || 0;
-
+            formContainer.innerHTML = `
+                <div class="form-group">
+                    <label>Headshot Rate (%)</label>
+                    <input type="number" id="edit-hsr" value="${log.hsrRate}" step="0.01" min="0" max="100">
+                </div>
+            `;
         } else if (metricType === 'adr') {
-            const val = prompt('Enter ADR Value:', log.adrValue);
-            if (val === null) return;
-            newLog.adrValue = parseFloat(val) || 0;
+            formContainer.innerHTML = `
+                <div class="form-group">
+                    <label>ADR Value</label>
+                    <input type="number" id="edit-adr" value="${log.adrValue}" step="0.1" min="0">
+                </div>
+            `;
         }
 
-        // Update logs array
-        logs[logIndex] = newLog;
-
-        // Recalculate totals
-        const updates = recalculateDailyTotals(logs, metricType);
-        updates.logs = logs;
-
-        await setDoc(docRef, updates, { merge: true });
-        console.log(`Updated log ${logId} in ${date}`);
-
-        // Recalculate ELO
-        await calculateEloMetrics(metricType);
+        modal.style.display = 'block';
 
     } catch (error) {
-        console.error('Error editing individual log:', error);
-        alert('Error editing log: ' + error.message);
+        console.error('Error opening edit modal:', error);
+        alert('Error: ' + error.message);
     }
 };
+
+// Modal Event Listeners
+document.addEventListener('DOMContentLoaded', () => {
+    const modal = document.getElementById('edit-log-modal');
+    const closeBtn = document.querySelector('.close-modal');
+    const cancelBtn = document.getElementById('cancel-edit-btn');
+    const saveBtn = document.getElementById('save-edit-btn');
+
+    const closeModal = () => {
+        modal.style.display = 'none';
+    };
+
+    if (closeBtn) closeBtn.onclick = closeModal;
+    if (cancelBtn) cancelBtn.onclick = closeModal;
+
+    window.onclick = (event) => {
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+
+    if (saveBtn) {
+        saveBtn.onclick = async () => {
+            const metricType = document.getElementById('edit-metric-type').value;
+            const date = document.getElementById('edit-log-date').value;
+            const logId = document.getElementById('edit-log-id').value;
+
+            try {
+                let collectionName;
+                if (metricType === 'kda') collectionName = KDA_COLLECTION_NAME;
+                else if (metricType === 'hsr') collectionName = HSR_COLLECTION_NAME;
+                else if (metricType === 'adr') collectionName = ADR_COLLECTION_NAME;
+
+                const docRef = doc(db, 'users', userId, collectionName, date);
+                const docSnap = await getDoc(docRef);
+
+                if (!docSnap.exists()) return;
+
+                const data = docSnap.data();
+                const logs = data.logs || [];
+                const logIndex = logs.findIndex(l => (l.id || 'legacy') === logId);
+
+                if (logIndex === -1) return;
+
+                const log = logs[logIndex];
+                let newLog = { ...log };
+
+                if (metricType === 'kda') {
+                    const k = parseInt(document.getElementById('edit-kills').value) || 0;
+                    const d = parseInt(document.getElementById('edit-deaths').value) || 0;
+                    const a = parseInt(document.getElementById('edit-assists').value) || 0;
+
+                    newLog.kills = k;
+                    newLog.deaths = d;
+                    newLog.assists = a;
+                    newLog.kda = parseFloat(calculateKda(k, d, a));
+
+                } else if (metricType === 'hsr') {
+                    newLog.hsrRate = parseFloat(document.getElementById('edit-hsr').value) || 0;
+                } else if (metricType === 'adr') {
+                    newLog.adrValue = parseFloat(document.getElementById('edit-adr').value) || 0;
+                }
+
+                // Update logs array
+                logs[logIndex] = newLog;
+
+                // Recalculate totals
+                const updates = recalculateDailyTotals(logs, metricType);
+                updates.logs = logs;
+
+                await setDoc(docRef, updates, { merge: true });
+                console.log(`Updated log ${logId} in ${date}`);
+
+                // Recalculate ELO
+                await calculateEloMetrics(metricType);
+
+                closeModal();
+
+            } catch (error) {
+                console.error('Error saving edit:', error);
+                alert('Error saving: ' + error.message);
+            }
+        };
+    }
+});
 
 function recalculateDailyTotals(logs, metricType) {
     if (metricType === 'kda') {
