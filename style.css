@@ -137,7 +137,8 @@ h2 {
 }
 
 #reset-zoom-btn-kda,
-#reset-zoom-btn-hsr {
+#reset-zoom-btn-hsr,
+#reset-zoom-btn-adr {
     padding: 5px 10px;
     background-color: #333;
     color: #FFC300;
@@ -150,7 +151,8 @@ h2 {
 }
 
 #reset-zoom-btn-kda:hover,
-#reset-zoom-btn-hsr:hover {
+#reset-zoom-btn-hsr:hover,
+#reset-zoom-btn-adr:hover {
     background-color: #444;
 }
 
@@ -191,7 +193,8 @@ h2 {
 }
 
 #overall-kda,
-#overall-hsr {
+#overall-hsr,
+#overall-adr {
     font-size: 1.5em;
     font-weight: bold;
     color: #FFC300;
@@ -214,7 +217,8 @@ input[type="date"] {
 
 /* Log Game Button (used for KDA and HSR) */
 #add-game-btn,
-#add-hsr-btn {
+#add-hsr-btn,
+#add-adr-btn {
     width: 100%;
     padding: 10px;
     background-color: #FFC300;
@@ -230,7 +234,8 @@ input[type="date"] {
 }
 
 #add-game-btn:hover,
-#add-hsr-btn:hover {
+#add-hsr-btn:hover,
+#add-adr-btn:hover {
     background-color: #FFD700;
     /* Lighter Gold on hover */
 }
@@ -241,14 +246,16 @@ input[type="date"] {
 }
 
 #kda-list,
-#hsr-list {
+#hsr-list,
+#adr-list {
     list-style: none;
     padding: 0;
 }
 
 /* Default (Desktop) List Item Layout */
 #kda-list li,
-#hsr-list li {
+#hsr-list li,
+#adr-list li {
     background-color: #282828;
     margin-bottom: 5px;
     padding: 8px 12px;
@@ -382,7 +389,8 @@ input[type="date"] {
 
     /* HISTORY LIST: Stack content vertically for readability */
     #kda-list li,
-    #hsr-list li {
+    #hsr-list li,
+    #adr-list li {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
