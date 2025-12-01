@@ -1012,11 +1012,15 @@ function calculateProjectedElo(currentMetric, foundationMetric, metricType) {
  */
 async function calculateEloMetrics(metricType) {
     try {
+        console.log(`[${metricType.toUpperCase()}] Starting ELO calculation...`);
+
         // Determine collection name
         let collectionName;
         if (metricType === 'kda') collectionName = KDA_COLLECTION_NAME;
         else if (metricType === 'hsr') collectionName = HSR_COLLECTION_NAME;
         else if (metricType === 'adr') collectionName = ADR_COLLECTION_NAME;
+
+        console.log(`[${metricType.toUpperCase()}] Collection: users/${userId}/${collectionName}`);
 
         // Fetch all games for this metric
         const gamesRef = collection(db, 'users', userId, collectionName);
@@ -1028,9 +1032,11 @@ async function calculateEloMetrics(metricType) {
         });
 
         if (gamesSnapshot.empty) {
-            console.log(`No games found for ${metricType}`);
+            console.log(`[${metricType.toUpperCase()}] ⚠️ No games found in collection`);
             return null;
         }
+
+        console.log(`[${metricType.toUpperCase()}] Found ${gamesSnapshot.size} documents`);
 
         // Extract game values with dates
         const games = [];
@@ -1127,35 +1133,51 @@ async function calculateEloMetrics(metricType) {
     }
 }
 
-/**
- * Update the ELO display with current metrics
- */
 async function updateEloDisplay() {
     try {
+        console.log('=== Starting ELO Display Update ===');
+
         // Fetch ELO metrics for all three types
         const kdaMetrics = await getEloMetrics('kda');
+        console.log('KDA Metrics:', kdaMetrics);
+
         const hsrMetrics = await getEloMetrics('hsr');
+        console.log('HSR Metrics:', hsrMetrics);
+
         const adrMetrics = await getEloMetrics('adr');
+        console.log('ADR Metrics:', adrMetrics);
 
         // Update KDA display
         if (kdaMetrics) {
+            console.log('Updating KDA display...');
             updateMetricDisplay('kda', kdaMetrics);
+        } else {
+            console.warn('No KDA metrics available');
         }
 
         // Update HSR display
         if (hsrMetrics) {
+            console.log('Updating HSR display...');
             updateMetricDisplay('hsr', hsrMetrics);
+        } else {
+            console.warn('No HSR metrics available - do you have HSR data logged?');
         }
 
         // Update ADR display
         if (adrMetrics) {
+            console.log('Updating ADR display...');
             updateMetricDisplay('adr', adrMetrics);
+        } else {
+            console.warn('No ADR metrics available - do you have ADR data logged?');
         }
 
         // Calculate overall projected Elo (average of all three)
         const validMetrics = [kdaMetrics, hsrMetrics, adrMetrics].filter(m => m !== null);
+        console.log('Valid metrics count:', validMetrics.length);
+
         if (validMetrics.length > 0) {
             const avgElo = validMetrics.reduce((sum, m) => sum + m.projectedEloRank, 0) / validMetrics.length;
+            console.log('Average ELO:', avgElo);
             document.getElementById('overall-elo-rank').textContent = Math.round(avgElo);
         }
 
@@ -1163,7 +1185,10 @@ async function updateEloDisplay() {
         const totalTime = validMetrics.reduce((sum, m) => sum + m.timeInvested, 0);
         const hours = Math.floor(totalTime / 60);
         const minutes = totalTime % 60;
+        console.log('Total time:', hours, 'hours', minutes, 'minutes');
         document.getElementById('total-time-invested').textContent = `${hours} hours ${minutes} minutes`;
+
+        console.log('=== ELO Display Update Complete ===');
 
     } catch (error) {
         console.error('Error updating ELO display:', error);
