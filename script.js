@@ -783,9 +783,9 @@ function startKdaRealtimeListener() {
                     // For now, let's just show them.
 
                     const actionsHtml = log.isLegacy ?
-                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
-                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('kda', '${dailyData.date}', '${logId}')">Edit</button>
-                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('kda', '${dailyData.date}', '${logId}')">Delete</button>`;
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data - Cannot Edit)</span>` :
+                        `<button class="log-btn log-edit-btn" data-metric="kda" data-date="${dailyData.date}" data-id="${logId}">Edit</button>
+                         <button class="log-btn log-delete-btn" data-metric="kda" data-date="${dailyData.date}" data-id="${logId}">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -901,9 +901,9 @@ function startHsrRealtimeListener() {
                     const logId = log.id || 'legacy';
 
                     const actionsHtml = log.isLegacy ?
-                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
-                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('hsr', '${dailyData.date}', '${logId}')">Edit</button>
-                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('hsr', '${dailyData.date}', '${logId}')">Delete</button>`;
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data - Cannot Edit)</span>` :
+                        `<button class="log-btn log-edit-btn" data-metric="hsr" data-date="${dailyData.date}" data-id="${logId}">Edit</button>
+                         <button class="log-btn log-delete-btn" data-metric="hsr" data-date="${dailyData.date}" data-id="${logId}">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -1018,9 +1018,9 @@ function startAdrRealtimeListener() {
                     const logId = log.id || 'legacy';
 
                     const actionsHtml = log.isLegacy ?
-                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
-                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('adr', '${dailyData.date}', '${logId}')">Edit</button>
-                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('adr', '${dailyData.date}', '${logId}')">Delete</button>`;
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data - Cannot Edit)</span>` :
+                        `<button class="log-btn log-edit-btn" data-metric="adr" data-date="${dailyData.date}" data-id="${logId}">Edit</button>
+                         <button class="log-btn log-delete-btn" data-metric="adr" data-date="${dailyData.date}" data-id="${logId}">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -1693,6 +1693,38 @@ function recalculateDailyTotals(logs, metricType) {
         };
     }
 }
+
+// ==========================================
+// Event Delegation for Dynamic Buttons
+// ==========================================
+
+function setupLogListListeners(listElement, metricType) {
+    if (!listElement) return;
+
+    listElement.addEventListener('click', (e) => {
+        // Find the closest button if clicked on icon/text inside
+        const btn = e.target.closest('.log-btn');
+        if (!btn) return;
+
+        const date = btn.dataset.date;
+        const id = btn.dataset.id;
+        // Allow override from data-metric, fallback to list metric
+        const metric = btn.dataset.metric || metricType;
+
+        if (btn.classList.contains('log-edit-btn')) {
+            console.log(`Edit clicked: ${metric} ${date} ${id}`);
+            editIndividualLog(metric, date, id);
+        } else if (btn.classList.contains('log-delete-btn')) {
+            console.log(`Delete clicked: ${metric} ${date} ${id}`);
+            deleteIndividualLog(metric, date, id);
+        }
+    });
+}
+
+// Initialize listeners
+setupLogListListeners(kdaList, 'kda');
+setupLogListListeners(hsrList, 'hsr');
+setupLogListListeners(adrList, 'adr');
 
 // Start the application
 setInitialDate();
