@@ -307,13 +307,25 @@ const addHSR = async () => {
     const docRef = doc(db, path, gameDate);
 
     try {
-        // HSR tracking does NOT aggregate, it just replaces the daily rate
+        // Get existing data to track entry count
+        const docSnap = await getDoc(docRef);
+        let existingEntryCount = 0;
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            existingEntryCount = parseInt(data.entryCount) || 0;
+        }
+
+        const newEntryCount = existingEntryCount + 1;
+
+        // HSR tracking updates the daily rate and tracks entry count
         await setDoc(docRef, {
             date: gameDate,
-            hsrRate: hsrRate
+            hsrRate: hsrRate,
+            entryCount: newEntryCount
         }, { merge: true });
 
-        displayMessage(`Headshot Rate Logged! Rate for ${gameDate}: ${hsrRate.toFixed(2)}%`, 'success');
+        displayMessage(`HSR Entry #${newEntryCount} Logged! Rate for ${gameDate}: ${hsrRate.toFixed(2)}%`, 'success');
 
         hsrRateInput.value = '';
 
@@ -409,13 +421,25 @@ const addADR = async () => {
     const docRef = doc(db, path, gameDate);
 
     try {
-        // ADR tracking does NOT aggregate, it just replaces the daily rate
+        // Get existing data to track entry count
+        const docSnap = await getDoc(docRef);
+        let existingEntryCount = 0;
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            existingEntryCount = parseInt(data.entryCount) || 0;
+        }
+
+        const newEntryCount = existingEntryCount + 1;
+
+        // ADR tracking updates the daily value and tracks entry count
         await setDoc(docRef, {
             date: gameDate,
-            adrValue: adrValue
+            adrValue: adrValue,
+            entryCount: newEntryCount
         }, { merge: true });
 
-        displayMessage(`ADR Logged! Value for ${gameDate}: ${adrValue.toFixed(1)}`, 'success');
+        displayMessage(`ADR Entry #${newEntryCount} Logged! Value for ${gameDate}: ${adrValue.toFixed(1)}`, 'success');
 
         adrInput.value = '';
 
@@ -671,6 +695,7 @@ function startKdaRealtimeListener() {
                 const kills = parseInt(dailyData.totalKills) || 0;
                 const deaths = parseInt(dailyData.totalDeaths) || 0;
                 const assists = parseInt(dailyData.totalAssists) || 0;
+                const gamesCount = parseInt(dailyData.gamesCount) || 1;
 
                 let kdaRatio = parseFloat(dailyData.kdaRatio);
                 if (isNaN(kdaRatio)) {
@@ -682,7 +707,8 @@ function startKdaRealtimeListener() {
                     totalKills: kills,
                     totalDeaths: deaths,
                     totalAssists: assists,
-                    kdaRatio: kdaRatio
+                    kdaRatio: kdaRatio,
+                    gamesCount: gamesCount
                 });
             }
         });
@@ -696,10 +722,11 @@ function startKdaRealtimeListener() {
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.totalKills}/${dailyData.totalDeaths}/${dailyData.totalAssists}`;
             const kdaRatioText = `KDA: ${calculateKda(dailyData.totalKills, dailyData.totalDeaths, dailyData.totalAssists)}`;
+            const gamesText = dailyData.gamesCount > 1 ? ` (${dailyData.gamesCount} games)` : ` (1 game)`;
 
             const li = document.createElement('li');
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-date">${dailyData.date}${gamesText}</span>
                 <span class="daily-score">Scores: ${scoreText}</span>
                 <span class="daily-kda-ratio">${kdaRatioText}</span>
                 
@@ -747,10 +774,12 @@ function startHsrRealtimeListener() {
 
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 const hsrRate = parseFloat(dailyData.hsrRate) || 0;
+                const entryCount = parseInt(dailyData.entryCount) || 1;
 
                 allDailyData.push({
                     date: dateString,
-                    hsrRate: hsrRate
+                    hsrRate: hsrRate,
+                    entryCount: entryCount
                 });
             }
         });
@@ -763,10 +792,11 @@ function startHsrRealtimeListener() {
 
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.hsrRate.toFixed(2)}%`;
+            const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
 
             const li = document.createElement('li');
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-date">${dailyData.date}${entriesText}</span>
                 <span class="daily-score">Rate: ${scoreText}</span>
                 <div class="action-buttons">
                     <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
@@ -812,10 +842,12 @@ function startAdrRealtimeListener() {
 
             if (dateString && dateString.length === 10 && dateString.includes('-')) {
                 const adrValue = parseFloat(dailyData.adrValue) || 0;
+                const entryCount = parseInt(dailyData.entryCount) || 1;
 
                 allDailyData.push({
                     date: dateString,
-                    adrValue: adrValue
+                    adrValue: adrValue,
+                    entryCount: entryCount
                 });
             }
         });
@@ -828,10 +860,11 @@ function startAdrRealtimeListener() {
 
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.adrValue.toFixed(1)}`;
+            const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
 
             const li = document.createElement('li');
             li.innerHTML = `
-                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-date">${dailyData.date}${entriesText}</span>
                 <span class="daily-score">ADR: ${scoreText}</span>
                 <div class="action-buttons">
                     <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
