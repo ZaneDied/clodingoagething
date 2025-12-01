@@ -41,6 +41,19 @@ const userId = 'PUBLIC';
 const KDA_COLLECTION_NAME = 'games';
 const HSR_COLLECTION_NAME = 'headshots';
 const ADR_COLLECTION_NAME = 'adr';
+const ELO_METRICS_COLLECTION = 'elo_metrics';
+
+// =================================================================
+// ELO SYSTEM CONSTANTS
+// =================================================================
+const ELO_CONSTANTS = {
+    BASELINE_ELO: 1500,           // R_Baseline
+    GLOBAL_AVG_HSR: 20,           // 20% for HSR
+    ELO_CONVERSION_FACTOR: 50,    // C_F
+    K_FACTOR: 30,                 // K_Elo (base gain)
+    TUNING_CONSTANT: 0.25,        // A (moderates proportional gain)
+    MINUTES_PER_GAME: 30          // Time tracking
+};
 
 // =================================================================
 // 2. UI Elements and Utilities
@@ -188,6 +201,9 @@ const addGame = async () => {
         deathsInput.value = '';
         assistsInput.value = '';
 
+        // Recalculate ELO metrics for KDA
+        await calculateEloMetrics('kda');
+
     } catch (error) {
         console.error("ERROR: Could not save KDA document.", error);
         displayMessage(`ERROR: Could not log KDA game.`, 'error');
@@ -297,6 +313,9 @@ const addHSR = async () => {
 
         hsrRateInput.value = '';
 
+        // Recalculate ELO metrics for HSR
+        await calculateEloMetrics('hsr');
+
     } catch (error) {
         console.error("ERROR: Could not save HSR document.", error);
         displayMessage(`ERROR: Could not log HSR rate.`, 'error');
@@ -395,6 +414,9 @@ const addADR = async () => {
         displayMessage(`ADR Logged! Value for ${gameDate}: ${adrValue.toFixed(1)}`, 'success');
 
         adrInput.value = '';
+
+        // Recalculate ELO metrics for ADR
+        await calculateEloMetrics('adr');
 
     } catch (error) {
         console.error("ERROR: Could not save ADR document.", error);
@@ -926,7 +948,304 @@ if (adrTitleBtn) {
 if (eloTitleBtn) {
     eloTitleBtn.addEventListener('click', () => {
         switchTrackerMode('ELO');
+        updateEloDisplay(); // Update ELO display when tab is clicked
     });
+}
+
+// =================================================================
+// ELO SYSTEM FUNCTIONS
+// =================================================================
+
+/**
+ * Calculate WEO Risk for the last 10 games
+ * WEO = game where current metric < historical average up to that point
+ */
+function calculateWEORisk(games) {
+    if (games.length === 0) return 0;
+
+    const last10 = games.slice(-10); // Get last 10 games
+    let weoCount = 0;
+
+    for (let i = 0; i < last10.length; i++) {
+        // Calculate historical average up to this game (not including current game)
+        const gamesBeforeCurrent = games.slice(0, games.length - last10.length + i);
+
+        if (gamesBeforeCurrent.length === 0) continue;
+
+        const historicalAvg = gamesBeforeCurrent.reduce((sum, g) => sum + g.value, 0) / gamesBeforeCurrent.length;
+
+        // Check if current game is below historical average
+        if (last10[i].value < historicalAvg) {
+            weoCount++;
+        }
+    }
+
+    return (weoCount / last10.length) * 100; // Return as percentage
+}
+
+/**
+ * Calculate Projected Elo Rank based on current performance
+ */
+function calculateProjectedElo(currentMetric, foundationMetric, metricType) {
+    const { BASELINE_ELO, GLOBAL_AVG_HSR, ELO_CONVERSION_FACTOR } = ELO_CONSTANTS;
+
+    // Determine global average based on metric type
+    let globalAvg;
+    if (metricType === 'hsr') {
+        globalAvg = GLOBAL_AVG_HSR;
+    } else {
+        // For KDA and ADR, use the foundation metric as the baseline
+        globalAvg = foundationMetric;
+    }
+
+    // Calculate metric difference
+    const metricDiff = currentMetric - globalAvg;
+
+    // Calculate projected Elo
+    const projectedElo = BASELINE_ELO + (metricDiff * ELO_CONVERSION_FACTOR);
+
+    return Math.round(projectedElo);
+}
+
+/**
+ * Calculate all ELO metrics for a given metric type
+ */
+async function calculateEloMetrics(metricType) {
+    try {
+        // Determine collection name
+        let collectionName;
+        if (metricType === 'kda') collectionName = KDA_COLLECTION_NAME;
+        else if (metricType === 'hsr') collectionName = HSR_COLLECTION_NAME;
+        else if (metricType === 'adr') collectionName = ADR_COLLECTION_NAME;
+
+        // Fetch all games for this metric
+        const gamesRef = collection(db, 'users', userId, collectionName);
+        const gamesSnapshot = await new Promise((resolve) => {
+            const unsubscribe = onSnapshot(gamesRef, (snapshot) => {
+                unsubscribe();
+                resolve(snapshot);
+            });
+        });
+
+        if (gamesSnapshot.empty) {
+            console.log(`No games found for ${metricType}`);
+            return null;
+        }
+
+        // Extract game values with dates
+        const games = [];
+        gamesSnapshot.forEach((doc) => {
+            const data = doc.data();
+            let value;
+
+            if (metricType === 'kda') {
+                const k = data.kills || 0;
+                const d = data.deaths || 1; // Avoid division by zero
+                const a = data.assists || 0;
+                value = (k + a) / d;
+            } else if (metricType === 'hsr') {
+                value = data.hsrRate || 0;
+            } else if (metricType === 'adr') {
+                value = data.adrValue || 0;
+            }
+
+            games.push({
+                date: doc.id,
+                value: value,
+                timestamp: data.timestamp || new Date()
+            });
+        });
+
+        // Sort by date
+        games.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        const totalGames = games.length;
+
+        // Calculate Past (Foundation) - all-time average
+        const foundationMetric = games.reduce((sum, g) => sum + g.value, 0) / totalGames;
+
+        // Calculate Present (Current) - last 5 games or all if < 5
+        let currentMetric;
+        let last5Games;
+
+        if (totalGames < 5) {
+            // Low data rule: Past === Present
+            currentMetric = foundationMetric;
+            last5Games = games.map(g => g.value);
+        } else {
+            last5Games = games.slice(-5).map(g => g.value);
+            currentMetric = last5Games.reduce((sum, v) => sum + v, 0) / last5Games.length;
+        }
+
+        // Calculate Future (Target) - 1.5 × Foundation
+        const targetMetric = foundationMetric * 1.5;
+
+        // Calculate Momentum Change
+        const momentumChange = ((currentMetric / foundationMetric) - 1) * 100;
+
+        // Calculate WEO Risk
+        const weoRisk = calculateWEORisk(games);
+
+        // Calculate Projected Elo Rank
+        const projectedEloRank = calculateProjectedElo(currentMetric, foundationMetric, metricType);
+
+        // Calculate Time Invested
+        const timeInvested = totalGames * ELO_CONSTANTS.MINUTES_PER_GAME;
+
+        // Count games per day
+        const gamesPerDay = {};
+        games.forEach(game => {
+            const dateKey = game.date;
+            gamesPerDay[dateKey] = (gamesPerDay[dateKey] || 0) + 1;
+        });
+
+        // Prepare ELO metrics object
+        const eloMetrics = {
+            metricType,
+            foundationMetric,
+            totalGamesPlayed: totalGames,
+            timeInvested,
+            currentMetric,
+            momentumChange,
+            last5Games,
+            targetMetric,
+            projectedEloRank,
+            weoRisk,
+            gamesPerDay,
+            lastUpdated: new Date()
+        };
+
+        // Store in Firebase
+        const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
+        await setDoc(eloDocRef, eloMetrics);
+
+        return eloMetrics;
+
+    } catch (error) {
+        console.error(`Error calculating ELO metrics for ${metricType}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Update the ELO display with current metrics
+ */
+async function updateEloDisplay() {
+    try {
+        // Fetch ELO metrics for all three types
+        const kdaMetrics = await getEloMetrics('kda');
+        const hsrMetrics = await getEloMetrics('hsr');
+        const adrMetrics = await getEloMetrics('adr');
+
+        // Update KDA display
+        if (kdaMetrics) {
+            updateMetricDisplay('kda', kdaMetrics);
+        }
+
+        // Update HSR display
+        if (hsrMetrics) {
+            updateMetricDisplay('hsr', hsrMetrics);
+        }
+
+        // Update ADR display
+        if (adrMetrics) {
+            updateMetricDisplay('adr', adrMetrics);
+        }
+
+        // Calculate overall projected Elo (average of all three)
+        const validMetrics = [kdaMetrics, hsrMetrics, adrMetrics].filter(m => m !== null);
+        if (validMetrics.length > 0) {
+            const avgElo = validMetrics.reduce((sum, m) => sum + m.projectedEloRank, 0) / validMetrics.length;
+            document.getElementById('overall-elo-rank').textContent = Math.round(avgElo);
+        }
+
+        // Update total time invested
+        const totalTime = validMetrics.reduce((sum, m) => sum + m.timeInvested, 0);
+        const hours = Math.floor(totalTime / 60);
+        const minutes = totalTime % 60;
+        document.getElementById('total-time-invested').textContent = `${hours} hours ${minutes} minutes`;
+
+    } catch (error) {
+        console.error('Error updating ELO display:', error);
+    }
+}
+
+/**
+ * Get ELO metrics from Firebase
+ */
+async function getEloMetrics(metricType) {
+    try {
+        const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
+        const eloDoc = await getDoc(eloDocRef);
+
+        if (eloDoc.exists()) {
+            return eloDoc.data();
+        } else {
+            // Calculate if doesn't exist
+            return await calculateEloMetrics(metricType);
+        }
+    } catch (error) {
+        console.error(`Error getting ELO metrics for ${metricType}:`, error);
+        return null;
+    }
+}
+
+/**
+ * Update individual metric display
+ */
+function updateMetricDisplay(metricType, metrics) {
+    const prefix = metricType;
+    const isHSR = metricType === 'hsr';
+    const suffix = isHSR ? '%' : '';
+
+    // Update Past/Present/Future values
+    document.getElementById(`${prefix}-past`).textContent =
+        metrics.foundationMetric.toFixed(2) + suffix;
+    document.getElementById(`${prefix}-present`).textContent =
+        metrics.currentMetric.toFixed(2) + suffix;
+    document.getElementById(`${prefix}-future`).textContent =
+        metrics.targetMetric.toFixed(2) + suffix;
+
+    // Update momentum with color coding
+    const momentumEl = document.getElementById(`${prefix}-momentum`);
+    const momentumSign = metrics.momentumChange >= 0 ? '+' : '';
+    momentumEl.textContent = `${momentumSign}${metrics.momentumChange.toFixed(1)}%`;
+    momentumEl.style.color = metrics.momentumChange >= 0 ? '#4caf50' : '#ff6b6b';
+
+    // Update WEO Risk
+    document.getElementById(`${prefix}-weo`).textContent =
+        `${metrics.weoRisk.toFixed(1)}%`;
+
+    // Update Games count
+    document.getElementById(`${prefix}-games`).textContent =
+        metrics.totalGamesPlayed;
+
+    // Update Present layer color
+    const presentLayer = document.getElementById(`${prefix}-present-layer`);
+    presentLayer.classList.remove('positive', 'negative');
+    if (metrics.momentumChange > 0) {
+        presentLayer.classList.add('positive');
+    } else if (metrics.momentumChange < 0) {
+        presentLayer.classList.add('negative');
+    }
+
+    // Update visual bar
+    const barFill = document.getElementById(`${prefix}-bar-fill`);
+    const barTarget = document.getElementById(`${prefix}-bar-target`);
+
+    // Calculate bar widths as percentages
+    const maxValue = Math.max(metrics.foundationMetric, metrics.currentMetric, metrics.targetMetric) * 1.1;
+    const currentPercent = (metrics.currentMetric / maxValue) * 100;
+    const targetPercent = (metrics.targetMetric / maxValue) * 100;
+
+    barFill.style.width = `${currentPercent}%`;
+    barTarget.style.left = `${targetPercent}%`;
+
+    // Color code the bar fill
+    barFill.classList.remove('negative');
+    if (metrics.momentumChange < 0) {
+        barFill.classList.add('negative');
+    }
 }
 
 

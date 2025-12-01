@@ -423,3 +423,218 @@ input[type="date"] {
         padding: 10px;
     }
 }
+
+/* =================================================================
+// ELO TRACKER STYLES
+// ================================================================= */
+
+/* Import Inter Font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* ELO Rank Header */
+.elo-rank-header {
+    text-align: center;
+    margin-bottom: 30px;
+    font-family: 'Inter', sans-serif;
+}
+
+.elo-rank-header h2 {
+    font-size: 1.2em;
+    color: #f0f0f0;
+    margin-bottom: 10px;
+}
+
+.elo-rank-display {
+    font-size: 3em;
+    font-weight: 700;
+    color: #FFC300;
+    margin-top: 10px;
+    text-shadow: 0 0 20px rgba(255, 195, 0, 0.3);
+}
+
+/* Metric Section Container */
+.elo-metric-section {
+    background-color: #282828;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.elo-metric-section h3 {
+    color: #FFC300;
+    font-size: 1.3em;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+/* Timeline (Past/Present/Future) */
+.elo-timeline {
+    display: flex;
+    justify-content: space-between;
+    margin: 15px 0;
+    gap: 10px;
+}
+
+.elo-layer {
+    flex: 1;
+    text-align: center;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: #333;
+    transition: all 0.3s ease;
+}
+
+.elo-layer.past {
+    background-color: #3a3a3a;
+    border: 2px solid #555;
+}
+
+.elo-layer.future {
+    background-color: #333;
+    border: 2px solid #666;
+}
+
+.elo-layer.present {
+    background-color: #333;
+    border: 2px solid #888;
+}
+
+.elo-layer.present.positive {
+    background-color: #2d5016;
+    border: 2px solid #4caf50;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.3);
+}
+
+.elo-layer.present.negative {
+    background-color: #5c2a1e;
+    border: 2px solid #ff6b6b;
+    box-shadow: 0 0 15px rgba(255, 107, 107, 0.3);
+}
+
+.layer-label {
+    display: block;
+    font-size: 0.75em;
+    color: #aaa;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.layer-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #FFC300;
+}
+
+/* Visual Bar */
+.elo-visual-bar {
+    position: relative;
+    height: 30px;
+    background-color: #1a1a1a;
+    border-radius: 15px;
+    margin: 15px 0;
+    overflow: visible;
+    border: 1px solid #444;
+}
+
+.bar-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: #2a2a2a;
+    border-radius: 15px;
+}
+
+.bar-fill {
+    position: absolute;
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #66bb6a);
+    border-radius: 15px;
+    transition: width 0.5s ease, background 0.3s ease;
+    z-index: 2;
+}
+
+.bar-fill.negative {
+    background: linear-gradient(90deg, #ff6b6b, #ff8787);
+}
+
+.bar-target {
+    position: absolute;
+    width: 4px;
+    height: 140%;
+    top: -20%;
+    background-color: #FFC300;
+    box-shadow: 0 0 10px #FFC300, 0 0 20px rgba(255, 195, 0, 0.5);
+    z-index: 3;
+    border-radius: 2px;
+}
+
+/* Stats Row */
+.elo-stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+    font-size: 0.9em;
+    color: #ccc;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.elo-stats span {
+    font-weight: 400;
+}
+
+.elo-stats span span {
+    font-weight: 600;
+    color: #FFC300;
+}
+
+/* Footer */
+.elo-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #282828;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.elo-footer p {
+    font-size: 1.1em;
+    color: #f0f0f0;
+    margin: 0;
+}
+
+.elo-footer span {
+    color: #FFC300;
+    font-weight: 600;
+}
+
+/* Mobile Responsiveness for ELO */
+@media (max-width: 600px) {
+    .elo-timeline {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .elo-layer {
+        padding: 12px;
+    }
+
+    .layer-value {
+        font-size: 1.3em;
+    }
+
+    .elo-rank-display {
+        font-size: 2.5em;
+    }
+
+    .elo-stats {
+        flex-direction: column;
+        gap: 8px;
+    }
+}
