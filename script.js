@@ -81,6 +81,8 @@ const messageBox = document.getElementById('message-box');
 const kdaTitleBtn = document.getElementById('kda-title-btn');
 const hsrTitleBtn = document.getElementById('hsr-title-btn');
 const adrTitleBtn = document.getElementById('adr-title-btn');
+const eloTitleBtn = document.getElementById('elo-title-btn');
+const eloContent = document.getElementById('elo-tracker-content');
 
 let kdaChart; // Global variable to hold the KDA Chart.js instance
 let hsrChart; // Global variable to hold the HSR Chart.js instance
@@ -835,35 +837,59 @@ function switchTrackerMode(mode) {
     if (mode === 'KDA') {
         kdaTitleBtn.classList.add('active');
         hsrTitleBtn.classList.remove('active');
+        adrTitleBtn.classList.remove('active');
+        eloTitleBtn.classList.remove('active');
         kdaContent.classList.add('active');
         kdaContent.classList.remove('hidden');
         hsrContent.classList.add('hidden');
         hsrContent.classList.remove('active');
         adrContent.classList.add('hidden');
         adrContent.classList.remove('active');
+        eloContent.classList.add('hidden');
+        eloContent.classList.remove('active');
         startKdaRealtimeListener();
     } else if (mode === 'HSR') {
         kdaTitleBtn.classList.remove('active');
         hsrTitleBtn.classList.add('active');
         adrTitleBtn.classList.remove('active');
+        eloTitleBtn.classList.remove('active');
         kdaContent.classList.add('hidden');
         kdaContent.classList.remove('active');
         hsrContent.classList.add('active');
         hsrContent.classList.remove('hidden');
         adrContent.classList.add('hidden');
         adrContent.classList.remove('active');
+        eloContent.classList.add('hidden');
+        eloContent.classList.remove('active');
         startHsrRealtimeListener();
     } else if (mode === 'ADR') {
         kdaTitleBtn.classList.remove('active');
         hsrTitleBtn.classList.remove('active');
         adrTitleBtn.classList.add('active');
+        eloTitleBtn.classList.remove('active');
         kdaContent.classList.add('hidden');
         kdaContent.classList.remove('active');
         hsrContent.classList.add('hidden');
         hsrContent.classList.remove('active');
         adrContent.classList.add('active');
         adrContent.classList.remove('hidden');
+        eloContent.classList.add('hidden');
+        eloContent.classList.remove('active');
         startAdrRealtimeListener();
+    } else if (mode === 'ELO') {
+        kdaTitleBtn.classList.remove('active');
+        hsrTitleBtn.classList.remove('active');
+        adrTitleBtn.classList.remove('active');
+        eloTitleBtn.classList.add('active');
+        kdaContent.classList.add('hidden');
+        kdaContent.classList.remove('active');
+        hsrContent.classList.add('hidden');
+        hsrContent.classList.remove('active');
+        adrContent.classList.add('hidden');
+        adrContent.classList.remove('active');
+        eloContent.classList.add('active');
+        eloContent.classList.remove('hidden');
+        // No listener for ELO yet
     }
 }
 
@@ -894,6 +920,12 @@ if (hsrTitleBtn) {
 if (adrTitleBtn) {
     adrTitleBtn.addEventListener('click', () => {
         switchTrackerMode('ADR');
+    });
+}
+
+if (eloTitleBtn) {
+    eloTitleBtn.addEventListener('click', () => {
+        switchTrackerMode('ELO');
     });
 }
 
