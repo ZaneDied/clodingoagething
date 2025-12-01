@@ -173,17 +173,20 @@ const addGame = async () => {
         let existingKills = 0;
         let existingDeaths = 0;
         let existingAssists = 0;
+        let existingGamesCount = 0;
 
         if (docSnap.exists()) {
             const data = docSnap.data();
             existingKills = parseInt(data.totalKills) || 0;
             existingDeaths = parseInt(data.totalDeaths) || 0;
             existingAssists = parseInt(data.totalAssists) || 0;
+            existingGamesCount = parseInt(data.gamesCount) || 0;
         }
 
         const newTotalKills = existingKills + kills;
         const newTotalDeaths = existingDeaths + deaths;
         const newTotalAssists = existingAssists + assists;
+        const newGamesCount = existingGamesCount + 1; // Increment game count
 
         const newKdaRatio = parseFloat(calculateKda(newTotalKills, newTotalDeaths, newTotalAssists));
 
@@ -192,10 +195,11 @@ const addGame = async () => {
             totalKills: newTotalKills,
             totalDeaths: newTotalDeaths,
             totalAssists: newTotalAssists,
-            kdaRatio: newKdaRatio
+            kdaRatio: newKdaRatio,
+            gamesCount: newGamesCount // Track individual games
         }, { merge: true });
 
-        displayMessage(`Game Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
+        displayMessage(`Game #${newGamesCount} Logged! Score: ${kills}/${deaths}/${assists}. Daily KDA is now ${newKdaRatio}`, 'success');
 
         killsInput.value = '';
         deathsInput.value = '';
@@ -1065,7 +1069,20 @@ async function calculateEloMetrics(metricType) {
         // Sort by date
         games.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        const totalGames = games.length;
+        // Calculate total games played (actual game count, not just days)
+        let totalGames;
+        if (metricType === 'kda') {
+            // For KDA, sum up the gamesCount from each day
+            totalGames = 0;
+            gamesSnapshot.forEach((doc) => {
+                const data = doc.data();
+                totalGames += (data.gamesCount || 1); // Default to 1 if field doesn't exist (backwards compatibility)
+            });
+            console.log(`[${metricType.toUpperCase()}] Total individual games: ${totalGames}`);
+        } else {
+            // For HSR and ADR, each entry = 1 game
+            totalGames = games.length;
+        }
 
         // Calculate Past (Foundation) - all-time average
         const foundationMetric = games.reduce((sum, g) => sum + g.value, 0) / totalGames;
