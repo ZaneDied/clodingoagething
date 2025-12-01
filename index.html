@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +9,15 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
 </head>
+
 <body>
     <div class="container">
-        
+
         <div class="mode-selector">
             <button id="mode-restaurant-btn" class="mode-btn active">Restaurant</button>
             <button id="mode-chef-btn" class="mode-btn">Chef</button>
         </div>
-        
+
         <div class="title-button-group">
             <button id="kda-title-btn" class="title-btn active">KDA</button>
             <button id="hsr-title-btn" class="title-btn">HSR</button>
@@ -24,7 +26,7 @@
         <p class="user-info-note">Your ID: <span id="user-id-display">PUBLIC</span></p>
 
         <div id="message-box" class="message-box"></div>
-        
+
         <div id="kda-tracker-content" class="tracker-content active">
             <div class="kda-summary-inline">
                 <h2>Overall Career KDA (K+A/D)</h2>
@@ -58,7 +60,7 @@
                 <li>Loading history...</li>
             </ul>
         </div>
-        
+
         <div id="hsr-tracker-content" class="tracker-content hidden">
             <div class="kda-summary-inline">
                 <h2>Overall Career Headshot Rate (%)</h2>
@@ -77,7 +79,8 @@
                     <label for="date-input-hsr">Game Date</label>
                     <input type="date" id="date-input-hsr">
 
-                    <input type="number" id="hsr-rate-input" placeholder="Headshot Rate (%)" min="0" max="100" step="0.01">
+                    <input type="number" id="hsr-rate-input" placeholder="Headshot Rate (%)" min="0" max="100"
+                        step="0.01">
 
                     <button id="add-hsr-btn">Log Headshot Rate (Daily Total)</button>
                 </div>
@@ -92,4 +95,5 @@
 
     <script type="module" src="script.js"></script>
 </body>
+
 </html>
