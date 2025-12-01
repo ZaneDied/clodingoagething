@@ -482,93 +482,159 @@ input[type="date"] {
     border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
-/* History Grouping Styles */
+/* History Grouping Styles - Hierarchy Tree */
 .history-day-group {
-    margin-bottom: 15px;
-    background-color: #2a2a2a;
-    border-radius: 8px;
+    margin-bottom: 25px;
+    background-color: transparent;
+    border-radius: 12px;
     overflow: hidden;
     border: 1px solid #444;
 }
 
 .daily-summary {
-    padding: 12px 15px;
-    background-color: #333;
+    padding: 15px 20px;
+    background-color: #2a2a2a;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #444;
+    cursor: pointer;
+    /* Indicate it's collapsible if we add that later */
 }
 
 .daily-summary .daily-date {
-    font-weight: 600;
+    font-size: 1.1em;
+    font-weight: 700;
     color: #FFC300;
+    display: block;
+    margin-bottom: 4px;
 }
 
 .game-logs-container {
-    padding: 10px 15px;
-    background-color: #222;
+    padding: 20px;
+    background-color: #1e1e1e;
+    position: relative;
+}
+
+/* Tree Vertical Line */
+.game-logs-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 25px;
+    left: 30px;
+    width: 2px;
+    background-color: #444;
 }
 
 .game-log-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 0;
-    margin-left: 10px;
-    border-left: 2px solid #444;
-    padding-left: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+    margin-left: 45px;
+    /* Indent from the line */
+    background-color: #252525;
+    border-radius: 8px;
+    border: 1px solid #333;
     position: relative;
-    font-size: 0.9em;
-    color: #ccc;
+    transition: transform 0.2s, border-color 0.2s;
 }
 
-.game-log-item:last-child {
-    border-left: 2px solid transparent;
-    /* Stop the line for the last item */
+.game-log-item:hover {
+    transform: translateX(5px);
+    border-color: #FFC300;
 }
 
-/* Fix for the continuous line effect */
-.game-logs-container {
-    position: relative;
-}
-
-.game-logs-container::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 15px;
-    /* Stop before the bottom */
-    left: 25px;
-    /* Adjust based on padding/margin */
-    width: 2px;
-    background-color: #444;
-    z-index: 0;
-}
-
+/* Tree Horizontal Connector */
 .game-log-item::before {
     content: '';
     position: absolute;
-    left: -6px;
-    /* Center on the border line */
+    left: -47px;
+    /* Reach back to the vertical line */
+    top: 50%;
+    width: 45px;
+    height: 2px;
+    background-color: #444;
+}
+
+/* Dot on the vertical line */
+.game-log-item::after {
+    content: '';
+    position: absolute;
+    left: -51px;
+    /* Position on the vertical line */
     top: 50%;
     width: 10px;
     height: 10px;
-    background-color: #555;
+    background-color: #FFC300;
     border-radius: 50%;
     transform: translateY(-50%);
-    z-index: 1;
-    border: 2px solid #222;
+    border: 2px solid #1e1e1e;
+}
+
+.game-log-item:last-child {
+    margin-bottom: 0;
+}
+
+.game-log-time {
+    font-size: 0.85em;
+    color: #888;
+    margin-bottom: 4px;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.game-log-metric {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #fff;
 }
 
 .game-log-details {
     display: flex;
-    gap: 15px;
+    flex-direction: column;
 }
 
-.game-log-metric {
+.log-actions {
+    display: flex;
+    gap: 10px;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+.game-log-item:hover .log-actions {
+    opacity: 1;
+}
+
+.log-btn {
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.log-edit-btn {
+    background-color: #444;
     color: #fff;
-    font-weight: 500;
+}
+
+.log-edit-btn:hover {
+    background-color: #2196F3;
+}
+
+.log-delete-btn {
+    background-color: #444;
+    color: #ff6b6b;
+}
+
+.log-delete-btn:hover {
+    background-color: #d32f2f;
+    color: #fff;
 }
 
 /* Timeline (Past/Present/Future) */
