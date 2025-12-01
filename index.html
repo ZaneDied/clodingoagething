@@ -122,106 +122,105 @@
             <ul id="adr-list">
                 <li>Loading ADR history...</li>
             </ul>
+        </div>
 
+        <div id="elo-tracker-content" class="tracker-content hidden">
+            <!-- Projected Elo Rank Header -->
+            <div class="elo-rank-header">
+                <h2>Projected Elo Rank</h2>
+                <div id="overall-elo-rank" class="elo-rank-display">1500</div>
+            </div>
 
-            <div id="elo-tracker-content" class="tracker-content hidden">
-                <!-- Projected Elo Rank Header -->
-                <div class="elo-rank-header">
-                    <h2>Projected Elo Rank</h2>
-                    <div id="overall-elo-rank" class="elo-rank-display">1500</div>
-                </div>
-
-                <!-- KDA Elo Section -->
-                <div class="elo-metric-section">
-                    <h3>KDA Performance</h3>
-                    <div class="elo-timeline">
-                        <div class="elo-layer past">
-                            <span class="layer-label">Past (Foundation)</span>
-                            <span id="kda-past" class="layer-value">0.00</span>
-                        </div>
-                        <div class="elo-layer present" id="kda-present-layer">
-                            <span class="layer-label">Present (Current)</span>
-                            <span id="kda-present" class="layer-value">0.00</span>
-                        </div>
-                        <div class="elo-layer future">
-                            <span class="layer-label">Future (Target)</span>
-                            <span id="kda-future" class="layer-value">0.00</span>
-                        </div>
+            <!-- KDA Elo Section -->
+            <div class="elo-metric-section">
+                <h3>KDA Performance</h3>
+                <div class="elo-timeline">
+                    <div class="elo-layer past">
+                        <span class="layer-label">Past (Foundation)</span>
+                        <span id="kda-past" class="layer-value">0.00</span>
                     </div>
-                    <div class="elo-visual-bar">
-                        <div class="bar-background"></div>
-                        <div id="kda-bar-fill" class="bar-fill"></div>
-                        <div id="kda-bar-target" class="bar-target"></div>
+                    <div class="elo-layer present" id="kda-present-layer">
+                        <span class="layer-label">Present (Current)</span>
+                        <span id="kda-present" class="layer-value">0.00</span>
                     </div>
-                    <div class="elo-stats">
-                        <span>Momentum: <span id="kda-momentum">+0%</span></span>
-                        <span>WEO Risk: <span id="kda-weo">0%</span></span>
-                        <span>Games: <span id="kda-games">0</span></span>
+                    <div class="elo-layer future">
+                        <span class="layer-label">Future (Target)</span>
+                        <span id="kda-future" class="layer-value">0.00</span>
                     </div>
                 </div>
+                <div class="elo-visual-bar">
+                    <div class="bar-background"></div>
+                    <div id="kda-bar-fill" class="bar-fill"></div>
+                    <div id="kda-bar-target" class="bar-target"></div>
+                </div>
+                <div class="elo-stats">
+                    <span>Momentum: <span id="kda-momentum">+0%</span></span>
+                    <span>WEO Risk: <span id="kda-weo">0%</span></span>
+                    <span>Games: <span id="kda-games">0</span></span>
+                </div>
+            </div>
 
-                <!-- HSR Elo Section -->
-                <div class="elo-metric-section">
-                    <h3>HSR Performance</h3>
-                    <div class="elo-timeline">
-                        <div class="elo-layer past">
-                            <span class="layer-label">Past (Foundation)</span>
-                            <span id="hsr-past" class="layer-value">0.00%</span>
-                        </div>
-                        <div class="elo-layer present" id="hsr-present-layer">
-                            <span class="layer-label">Present (Current)</span>
-                            <span id="hsr-present" class="layer-value">0.00%</span>
-                        </div>
-                        <div class="elo-layer future">
-                            <span class="layer-label">Future (Target)</span>
-                            <span id="hsr-future" class="layer-value">0.00%</span>
-                        </div>
+            <!-- HSR Elo Section -->
+            <div class="elo-metric-section">
+                <h3>HSR Performance</h3>
+                <div class="elo-timeline">
+                    <div class="elo-layer past">
+                        <span class="layer-label">Past (Foundation)</span>
+                        <span id="hsr-past" class="layer-value">0.00%</span>
                     </div>
-                    <div class="elo-visual-bar">
-                        <div class="bar-background"></div>
-                        <div id="hsr-bar-fill" class="bar-fill"></div>
-                        <div id="hsr-bar-target" class="bar-target"></div>
+                    <div class="elo-layer present" id="hsr-present-layer">
+                        <span class="layer-label">Present (Current)</span>
+                        <span id="hsr-present" class="layer-value">0.00%</span>
                     </div>
-                    <div class="elo-stats">
-                        <span>Momentum: <span id="hsr-momentum">+0%</span></span>
-                        <span>WEO Risk: <span id="hsr-weo">0%</span></span>
-                        <span>Games: <span id="hsr-games">0</span></span>
+                    <div class="elo-layer future">
+                        <span class="layer-label">Future (Target)</span>
+                        <span id="hsr-future" class="layer-value">0.00%</span>
                     </div>
                 </div>
+                <div class="elo-visual-bar">
+                    <div class="bar-background"></div>
+                    <div id="hsr-bar-fill" class="bar-fill"></div>
+                    <div id="hsr-bar-target" class="bar-target"></div>
+                </div>
+                <div class="elo-stats">
+                    <span>Momentum: <span id="hsr-momentum">+0%</span></span>
+                    <span>WEO Risk: <span id="hsr-weo">0%</span></span>
+                    <span>Games: <span id="hsr-games">0</span></span>
+                </div>
+            </div>
 
-                <!-- ADR Elo Section -->
-                <div class="elo-metric-section">
-                    <h3>ADR Performance</h3>
-                    <div class="elo-timeline">
-                        <div class="elo-layer past">
-                            <span class="layer-label">Past (Foundation)</span>
-                            <span id="adr-past" class="layer-value">0.00</span>
-                        </div>
-                        <div class="elo-layer present" id="adr-present-layer">
-                            <span class="layer-label">Present (Current)</span>
-                            <span id="adr-present" class="layer-value">0.00</span>
-                        </div>
-                        <div class="elo-layer future">
-                            <span class="layer-label">Future (Target)</span>
-                            <span id="adr-future" class="layer-value">0.00</span>
-                        </div>
+            <!-- ADR Elo Section -->
+            <div class="elo-metric-section">
+                <h3>ADR Performance</h3>
+                <div class="elo-timeline">
+                    <div class="elo-layer past">
+                        <span class="layer-label">Past (Foundation)</span>
+                        <span id="adr-past" class="layer-value">0.00</span>
                     </div>
-                    <div class="elo-visual-bar">
-                        <div class="bar-background"></div>
-                        <div id="adr-bar-fill" class="bar-fill"></div>
-                        <div id="adr-bar-target" class="bar-target"></div>
+                    <div class="elo-layer present" id="adr-present-layer">
+                        <span class="layer-label">Present (Current)</span>
+                        <span id="adr-present" class="layer-value">0.00</span>
                     </div>
-                    <div class="elo-stats">
-                        <span>Momentum: <span id="adr-momentum">+0%</span></span>
-                        <span>WEO Risk: <span id="adr-weo">0%</span></span>
-                        <span>Games: <span id="adr-games">0</span></span>
+                    <div class="elo-layer future">
+                        <span class="layer-label">Future (Target)</span>
+                        <span id="adr-future" class="layer-value">0.00</span>
                     </div>
                 </div>
-
-                <!-- Time Invested Display -->
-                <div class="elo-footer">
-                    <p>Time Invested: <span id="total-time-invested">0 hours 0 minutes</span></p>
+                <div class="elo-visual-bar">
+                    <div class="bar-background"></div>
+                    <div id="adr-bar-fill" class="bar-fill"></div>
+                    <div id="adr-bar-target" class="bar-target"></div>
                 </div>
+                <div class="elo-stats">
+                    <span>Momentum: <span id="adr-momentum">+0%</span></span>
+                    <span>WEO Risk: <span id="adr-weo">0%</span></span>
+                    <span>Games: <span id="adr-games">0</span></span>
+                </div>
+            </div>
+
+            <!-- Time Invested Display -->
+            <div class="elo-footer">
+                <p>Time Invested: <span id="total-time-invested">0 hours 0 minutes</span></p>
             </div>
         </div>
     </div>
