@@ -1039,9 +1039,9 @@ async function calculateEloMetrics(metricType) {
             let value;
 
             if (metricType === 'kda') {
-                const k = data.kills || 0;
-                const d = data.deaths || 1; // Avoid division by zero
-                const a = data.assists || 0;
+                const k = data.totalKills || 0;
+                const d = data.totalDeaths || 1; // Avoid division by zero
+                const a = data.totalAssists || 0;
                 value = (k + a) / d;
             } else if (metricType === 'hsr') {
                 value = data.hsrRate || 0;
@@ -1220,8 +1220,14 @@ function updateMetricDisplay(metricType, metrics) {
     document.getElementById(`${prefix}-games`).textContent =
         metrics.totalGamesPlayed;
 
+    // Update individual ELO rank for this metric
+    const eloRankEl = document.getElementById(`${prefix}-elo-rank`);
+    if (eloRankEl) {
+        eloRankEl.textContent = `ELO: ${metrics.projectedEloRank}`;
+    }
+
     // Update Present layer color
-    const presentLayer = document.getElementById(`${prefix}-present-layer`);
+    const presentLayer = document.getElementById(`${prefix} -present - layer`);
     presentLayer.classList.remove('positive', 'negative');
     if (metrics.momentumChange > 0) {
         presentLayer.classList.add('positive');
@@ -1230,16 +1236,16 @@ function updateMetricDisplay(metricType, metrics) {
     }
 
     // Update visual bar
-    const barFill = document.getElementById(`${prefix}-bar-fill`);
-    const barTarget = document.getElementById(`${prefix}-bar-target`);
+    const barFill = document.getElementById(`${prefix} -bar - fill`);
+    const barTarget = document.getElementById(`${prefix} -bar - target`);
 
     // Calculate bar widths as percentages
     const maxValue = Math.max(metrics.foundationMetric, metrics.currentMetric, metrics.targetMetric) * 1.1;
     const currentPercent = (metrics.currentMetric / maxValue) * 100;
     const targetPercent = (metrics.targetMetric / maxValue) * 100;
 
-    barFill.style.width = `${currentPercent}%`;
-    barTarget.style.left = `${targetPercent}%`;
+    barFill.style.width = `${currentPercent}% `;
+    barTarget.style.left = `${targetPercent}% `;
 
     // Color code the bar fill
     barFill.classList.remove('negative');

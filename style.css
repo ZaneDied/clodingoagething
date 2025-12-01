@@ -467,6 +467,19 @@ input[type="date"] {
     font-size: 1.3em;
     margin-bottom: 15px;
     font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.metric-elo-rank {
+    font-size: 0.75em;
+    color: #4caf50;
+    font-weight: 500;
+    background-color: rgba(76, 175, 80, 0.1);
+    padding: 4px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(76, 175, 80, 0.3);
 }
 
 /* Timeline (Past/Present/Future) */
