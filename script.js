@@ -40,6 +40,7 @@ const userId = 'PUBLIC';
 // Database Collection Constants
 const KDA_COLLECTION_NAME = 'games';
 const HSR_COLLECTION_NAME = 'headshots';
+const ADR_COLLECTION_NAME = 'adr';
 
 // =================================================================
 // 2. UI Elements and Utilities
@@ -65,14 +66,25 @@ const hsrList = document.getElementById('hsr-list');
 const overallHsrDisplay = document.getElementById('overall-hsr');
 const resetZoomBtnHsr = document.getElementById('reset-zoom-btn-hsr');
 
+// --- ADR Elements ---
+const adrContent = document.getElementById('adr-tracker-content');
+const dateInputAdr = document.getElementById('date-input-adr');
+const adrInput = document.getElementById('adr-input');
+const addAdrBtn = document.getElementById('add-adr-btn');
+const adrList = document.getElementById('adr-list');
+const overallAdrDisplay = document.getElementById('overall-adr');
+const resetZoomBtnAdr = document.getElementById('reset-zoom-btn-adr');
+
 // --- Shared Elements ---
 const userIdDisplay = document.getElementById('user-id-display');
 const messageBox = document.getElementById('message-box');
 const kdaTitleBtn = document.getElementById('kda-title-btn');
 const hsrTitleBtn = document.getElementById('hsr-title-btn');
+const adrTitleBtn = document.getElementById('adr-title-btn');
 
 let kdaChart; // Global variable to hold the KDA Chart.js instance
 let hsrChart; // Global variable to hold the HSR Chart.js instance
+let adrChart; // Global variable to hold the ADR Chart.js instance
 
 let currentListenerUnsubscribe; // To manage the current active real-time listener
 
@@ -101,8 +113,11 @@ function calculateKda(kills, deaths, assists) {
 
 // Defines the collection path based on the mode.
 const getCollectionPath = (mode) => {
-    const collection = mode === 'KDA' ? KDA_COLLECTION_NAME : HSR_COLLECTION_NAME;
-    return `users/${userId}/${collection}`;
+    let collectionName = KDA_COLLECTION_NAME;
+    if (mode === 'HSR') collectionName = HSR_COLLECTION_NAME;
+    if (mode === 'ADR') collectionName = ADR_COLLECTION_NAME;
+
+    return `users/${userId}/${collectionName}`;
 };
 
 // Set the date input to today's date
@@ -117,6 +132,7 @@ function setInitialDate() {
 
     if (dateInputKda) dateInputKda.value = formattedDate;
     if (dateInputHsr) dateInputHsr.value = formattedDate;
+    if (dateInputAdr) dateInputAdr.value = formattedDate;
 }
 
 // =================================================================
@@ -351,6 +367,105 @@ const handleUpdateHsrClick = async () => {
     }
 };
 
+// =================================================================
+// 5. ADR LOGIC (NEW)
+// =================================================================
+
+const addADR = async () => {
+    const gameDate = dateInputAdr.value;
+    const adrValue = parseFloat(adrInput.value);
+
+    if (!gameDate || isNaN(adrValue) || adrValue < 0) {
+        displayMessage("Please enter a valid date and positive ADR value.", 'error');
+        return;
+    }
+
+    const path = getCollectionPath('ADR');
+    const docRef = doc(db, path, gameDate);
+
+    try {
+        // ADR tracking does NOT aggregate, it just replaces the daily rate
+        await setDoc(docRef, {
+            date: gameDate,
+            adrValue: adrValue
+        }, { merge: true });
+
+        displayMessage(`ADR Logged! Value for ${gameDate}: ${adrValue.toFixed(1)}`, 'success');
+
+        adrInput.value = '';
+
+    } catch (error) {
+        console.error("ERROR: Could not save ADR document.", error);
+        displayMessage(`ERROR: Could not log ADR value.`, 'error');
+    }
+};
+
+const deleteAdrEntry = async (dateString) => {
+    if (!confirm(`Are you sure you want to delete the daily ADR value for ${dateString}?`)) {
+        return;
+    }
+
+    const path = getCollectionPath('ADR');
+    const docRef = doc(db, path, dateString);
+
+    try {
+        await deleteDoc(docRef);
+        displayMessage(`Successfully deleted ADR entry for ${dateString}.`, 'success');
+    } catch (error) {
+        console.error("ERROR: Could not delete ADR document.", error);
+        displayMessage(`ERROR: Could not delete ADR entry: ${error.message}`, 'error');
+    }
+};
+
+const editAdrEntry = (dailyData) => {
+    dateInputAdr.value = dailyData.date;
+    adrInput.value = dailyData.adrValue;
+
+    addAdrBtn.textContent = `UPDATE DAILY ADR (${dailyData.date})`;
+    addAdrBtn.style.backgroundColor = '#f39c12';
+
+    addAdrBtn.removeEventListener('click', addADR);
+    addAdrBtn.addEventListener('click', handleUpdateAdrClick);
+
+    displayMessage(`Ready to edit/replace daily ADR for ${dailyData.date}. Click "UPDATE" to save.`, 'success');
+};
+
+
+const handleUpdateAdrClick = async () => {
+    const gameDate = dateInputAdr.value;
+    const adrValue = parseFloat(adrInput.value);
+
+    if (!gameDate || isNaN(adrValue) || adrValue < 0) {
+        displayMessage("Please enter a valid date and positive ADR value.", 'error');
+        return;
+    }
+
+    const path = getCollectionPath('ADR');
+    const docRef = doc(db, path, gameDate);
+
+    try {
+
+        await setDoc(docRef, {
+            date: gameDate,
+            adrValue: adrValue
+        });
+
+        displayMessage(`Successfully updated daily ADR for ${gameDate}.`, 'success');
+
+        adrInput.value = '';
+        addAdrBtn.textContent = 'Log ADR (Daily Average)';
+        addAdrBtn.style.backgroundColor = '#FFC300';
+
+        addAdrBtn.removeEventListener('click', handleUpdateAdrClick);
+        addAdrBtn.addEventListener('click', addADR);
+
+
+    } catch (error) {
+        console.error("ERROR: Could not update ADR document.", error);
+        displayMessage(`ERROR: Could not update ADR entry: ${error.message}`, 'error');
+    }
+};
+
 
 // =================================================================
 // 5. CHARTS AND DATA UPDATE FUNCTIONS
@@ -361,20 +476,30 @@ function initializeChart(chartId) {
     if (!canvasElement) return;
 
     const ctx = canvasElement.getContext('2d');
-    let chartInstance = chartId === 'kda-chart' ? kdaChart : hsrChart;
+    let chartInstance;
+    if (chartId === 'kda-chart') chartInstance = kdaChart;
+    else if (chartId === 'hsr-chart') chartInstance = hsrChart;
+    else if (chartId === 'adr-chart') chartInstance = adrChart;
 
     if (chartInstance) {
         chartInstance.destroy();
     }
 
     const isKda = chartId === 'kda-chart';
+    const isHsr = chartId === 'hsr-chart';
+    const isAdr = chartId === 'adr-chart';
+
+    let label = 'Value';
+    if (isKda) label = 'KDA Ratio';
+    if (isHsr) label = 'HSR %';
+    if (isAdr) label = 'ADR';
 
     chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: [],
             datasets: [{
-                label: isKda ? 'KDA Ratio' : 'HSR %',
+                label: label,
                 data: [],
                 borderColor: '#FFC300',
                 backgroundColor: 'rgba(255, 195, 0, 0.2)',
@@ -394,8 +519,8 @@ function initializeChart(chartId) {
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 },
                 y: {
-                    title: { display: true, text: isKda ? 'KDA' : 'HSR (%)', color: '#f0f0f0' },
-                    ticks: { color: '#f0f0f0', beginAtZero: isKda ? true : false, suggestedMin: isKda ? 0 : -5, suggestedMax: isKda ? undefined : 105 },
+                    title: { display: true, text: label, color: '#f0f0f0' },
+                    ticks: { color: '#f0f0f0', beginAtZero: isKda ? true : false, suggestedMin: isKda ? 0 : (isAdr ? 0 : -5), suggestedMax: isHsr ? 105 : undefined },
                     grid: { color: 'rgba(255, 255, 255, 0.1)' }
                 }
             },
@@ -422,12 +547,19 @@ function initializeChart(chartId) {
             resetZoomBtnKda.style.display = 'inline-block';
             resetZoomBtnKda.onclick = () => kdaChart.resetZoom();
         }
-    } else {
+    } else if (isHsr) {
         hsrChart = chartInstance;
         // Attach HSR reset listener
         if (resetZoomBtnHsr) {
             resetZoomBtnHsr.style.display = 'inline-block';
             resetZoomBtnHsr.onclick = () => hsrChart.resetZoom();
+        }
+    } else if (isAdr) {
+        adrChart = chartInstance;
+        // Attach ADR reset listener
+        if (resetZoomBtnAdr) {
+            resetZoomBtnAdr.style.display = 'inline-block';
+            resetZoomBtnAdr.onclick = () => adrChart.resetZoom();
         }
     }
 }
@@ -470,6 +602,16 @@ function updateOverallHSR(allHsrData) {
     const totalHsr = allHsrData.reduce((sum, data) => sum + data.hsrRate, 0);
     const averageHsr = (totalHsr / allHsrData.length).toFixed(2);
     overallHsrDisplay.textContent = `${averageHsr}%`;
+}
+
+function updateOverallADR(allAdrData) {
+    if (allAdrData.length === 0) {
+        overallAdrDisplay.textContent = '0.00';
+        return;
+    }
+    const totalAdr = allAdrData.reduce((sum, data) => sum + data.adrValue, 0);
+    const averageAdr = (totalAdr / allAdrData.length).toFixed(1);
+    overallAdrDisplay.textContent = averageAdr;
 }
 
 
@@ -619,6 +761,71 @@ function startHsrRealtimeListener() {
     });
 }
 
+// NEW: ADR Realtime Listener
+function startAdrRealtimeListener() {
+    initializeChart('adr-chart');
+
+    const path = getCollectionPath('ADR');
+    const adrCollectionRef = collection(db, path);
+    const adrQuery = query(adrCollectionRef);
+
+    // Unsubscribe from any previous listener
+    if (currentListenerUnsubscribe) currentListenerUnsubscribe();
+
+    currentListenerUnsubscribe = onSnapshot(adrQuery, (snapshot) => {
+        if (!adrList) return;
+
+        const allDailyData = [];
+        adrList.innerHTML = '';
+
+        snapshot.forEach((doc) => {
+            const dailyData = doc.data();
+            const dateString = dailyData.date || doc.id;
+
+            if (dateString && dateString.length === 10 && dateString.includes('-')) {
+                const adrValue = parseFloat(dailyData.adrValue) || 0;
+
+                allDailyData.push({
+                    date: dateString,
+                    adrValue: adrValue
+                });
+            }
+        });
+
+        const sortedDisplayData = allDailyData.sort((a, b) => b.date.localeCompare(a.date));
+
+        if (sortedDisplayData.length === 0) {
+            adrList.innerHTML = `<li style="text-align: center; background-color: #333; border-left: 5px solid #FFC300;">No ADR values logged yet.</li>`;
+        }
+
+        sortedDisplayData.forEach(dailyData => {
+            const scoreText = `${dailyData.adrValue.toFixed(1)}`;
+
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <span class="daily-date">${dailyData.date}</span>
+                <span class="daily-score">ADR: ${scoreText}</span>
+                <div class="action-buttons">
+                    <button class="edit-btn" data-date="${dailyData.date}">Edit</button>
+                    <button class="delete-btn" data-date="${dailyData.date}">Delete</button>
+                </div>
+            `;
+            adrList.appendChild(li);
+
+            // Re-attach listeners for new buttons
+            li.querySelector('.edit-btn').addEventListener('click', (e) => editAdrEntry(dailyData));
+            li.querySelector('.delete-btn').addEventListener('click', (e) => deleteAdrEntry(dailyData.date));
+        });
+
+        updateOverallADR(allDailyData);
+        updateChart(allDailyData, adrChart, 'adrValue');
+
+    }, (error) => {
+        console.error("FATAL ERROR: ADR Real-time listener failed to sync.", error);
+        displayMessage(`FATAL SYNC ERROR: ${error.message}. Check console.`, 'error');
+    });
+}
+
 
 // =================================================================
 // 7. EVENT HANDLERS AND INITIALIZATION
@@ -632,15 +839,31 @@ function switchTrackerMode(mode) {
         kdaContent.classList.remove('hidden');
         hsrContent.classList.add('hidden');
         hsrContent.classList.remove('active');
+        adrContent.classList.add('hidden');
+        adrContent.classList.remove('active');
         startKdaRealtimeListener();
     } else if (mode === 'HSR') {
         kdaTitleBtn.classList.remove('active');
         hsrTitleBtn.classList.add('active');
+        adrTitleBtn.classList.remove('active');
         kdaContent.classList.add('hidden');
         kdaContent.classList.remove('active');
         hsrContent.classList.add('active');
         hsrContent.classList.remove('hidden');
+        adrContent.classList.add('hidden');
+        adrContent.classList.remove('active');
         startHsrRealtimeListener();
+    } else if (mode === 'ADR') {
+        kdaTitleBtn.classList.remove('active');
+        hsrTitleBtn.classList.remove('active');
+        adrTitleBtn.classList.add('active');
+        kdaContent.classList.add('hidden');
+        kdaContent.classList.remove('active');
+        hsrContent.classList.add('hidden');
+        hsrContent.classList.remove('active');
+        adrContent.classList.add('active');
+        adrContent.classList.remove('hidden');
+        startAdrRealtimeListener();
     }
 }
 
@@ -652,6 +875,10 @@ if (addHsrBtn) {
     addHsrBtn.addEventListener('click', addHSR);
 }
 
+if (addAdrBtn) {
+    addAdrBtn.addEventListener('click', addADR);
+}
+
 if (kdaTitleBtn) {
     kdaTitleBtn.addEventListener('click', () => {
         switchTrackerMode('KDA');
@@ -661,6 +888,12 @@ if (kdaTitleBtn) {
 if (hsrTitleBtn) {
     hsrTitleBtn.addEventListener('click', () => {
         switchTrackerMode('HSR');
+    });
+}
+
+if (adrTitleBtn) {
+    adrTitleBtn.addEventListener('click', () => {
+        switchTrackerMode('ADR');
     });
 }
 
