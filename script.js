@@ -745,7 +745,20 @@ function startKdaRealtimeListener() {
             const scoreText = `${dailyData.totalKills}/${dailyData.totalDeaths}/${dailyData.totalAssists}`;
             const kdaRatioText = `KDA: ${calculateKda(dailyData.totalKills, dailyData.totalDeaths, dailyData.totalAssists)}`;
             const gamesText = dailyData.gamesCount > 1 ? ` (${dailyData.gamesCount} games)` : ` (1 game)`;
-            const logs = dailyData.logs || [];
+            let logs = dailyData.logs || [];
+
+            // Handle legacy data: if no logs but we have stats, create a synthetic log
+            if (logs.length === 0 && (dailyData.totalKills > 0 || dailyData.totalDeaths > 0 || dailyData.totalAssists > 0)) {
+                logs = [{
+                    id: 'legacy-' + dailyData.date,
+                    timestamp: null, // No specific time
+                    kills: dailyData.totalKills,
+                    deaths: dailyData.totalDeaths,
+                    assists: dailyData.totalAssists,
+                    kda: dailyData.kdaRatio,
+                    isLegacy: true
+                }];
+            }
 
             const li = document.createElement('li');
             li.className = 'history-day-group';
@@ -755,12 +768,24 @@ function startKdaRealtimeListener() {
                 logsHtml = `<div class="game-logs-container">`;
                 logs.forEach((log, index) => {
                     // Handle timestamp conversion safely
-                    let timeStr = `Game ${index + 1}`;
+                    let timeStr = log.isLegacy ? 'Legacy Entry' : `Game ${index + 1}`;
                     if (log.timestamp && log.timestamp.seconds) {
                         timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     }
 
-                    const logId = log.id || 'legacy'; // Fallback for old logs
+                    const logId = log.id || 'legacy';
+
+                    // Only show delete button for individual logs if it's NOT a legacy synthetic log
+                    // actually we can allow deleting legacy log if we want to clear the day? 
+                    // But deleting individual legacy log might be tricky if it doesn't exist in DB.
+                    // Let's disable individual actions for legacy synthetic logs for now, or handle them carefully.
+                    // The user wants to edit. If we edit a legacy log, we should probably create a real log array?
+                    // For now, let's just show them.
+
+                    const actionsHtml = log.isLegacy ?
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
+                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('kda', '${dailyData.date}', '${logId}')">Edit</button>
+                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('kda', '${dailyData.date}', '${logId}')">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -770,8 +795,7 @@ function startKdaRealtimeListener() {
                                 <span style="color: #aaa; font-size: 0.9em;">${log.kills}/${log.deaths}/${log.assists}</span>
                             </div>
                             <div class="log-actions">
-                                <button class="log-btn log-edit-btn" onclick="editIndividualLog('kda', '${dailyData.date}', '${logId}')">Edit</button>
-                                <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('kda', '${dailyData.date}', '${logId}')">Delete</button>
+                                ${actionsHtml}
                             </div>
                         </div>
                     `;
@@ -850,7 +874,17 @@ function startHsrRealtimeListener() {
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.hsrRate.toFixed(2)}%`;
             const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
-            const logs = dailyData.logs || [];
+            let logs = dailyData.logs || [];
+
+            // Handle legacy data
+            if (logs.length === 0 && dailyData.hsrRate > 0) {
+                logs = [{
+                    id: 'legacy-' + dailyData.date,
+                    timestamp: null,
+                    hsrRate: dailyData.hsrRate,
+                    isLegacy: true
+                }];
+            }
 
             const li = document.createElement('li');
             li.className = 'history-day-group';
@@ -859,12 +893,17 @@ function startHsrRealtimeListener() {
             if (logs.length > 0) {
                 logsHtml = `<div class="game-logs-container">`;
                 logs.forEach((log, index) => {
-                    let timeStr = `Entry ${index + 1}`;
+                    let timeStr = log.isLegacy ? 'Legacy Entry' : `Entry ${index + 1}`;
                     if (log.timestamp && log.timestamp.seconds) {
                         timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     }
 
                     const logId = log.id || 'legacy';
+
+                    const actionsHtml = log.isLegacy ?
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
+                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('hsr', '${dailyData.date}', '${logId}')">Edit</button>
+                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('hsr', '${dailyData.date}', '${logId}')">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -873,8 +912,7 @@ function startHsrRealtimeListener() {
                                 <span class="game-log-metric">Rate: ${log.hsrRate.toFixed(2)}%</span>
                             </div>
                             <div class="log-actions">
-                                <button class="log-btn log-edit-btn" onclick="editIndividualLog('hsr', '${dailyData.date}', '${logId}')">Edit</button>
-                                <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('hsr', '${dailyData.date}', '${logId}')">Delete</button>
+                                ${actionsHtml}
                             </div>
                         </div>
                     `;
@@ -953,7 +991,17 @@ function startAdrRealtimeListener() {
         sortedDisplayData.forEach(dailyData => {
             const scoreText = `${dailyData.adrValue.toFixed(1)}`;
             const entriesText = dailyData.entryCount > 1 ? ` (${dailyData.entryCount} entries)` : ` (1 entry)`;
-            const logs = dailyData.logs || [];
+            let logs = dailyData.logs || [];
+
+            // Handle legacy data
+            if (logs.length === 0 && dailyData.adrValue > 0) {
+                logs = [{
+                    id: 'legacy-' + dailyData.date,
+                    timestamp: null,
+                    adrValue: dailyData.adrValue,
+                    isLegacy: true
+                }];
+            }
 
             const li = document.createElement('li');
             li.className = 'history-day-group';
@@ -962,12 +1010,17 @@ function startAdrRealtimeListener() {
             if (logs.length > 0) {
                 logsHtml = `<div class="game-logs-container">`;
                 logs.forEach((log, index) => {
-                    let timeStr = `Entry ${index + 1}`;
+                    let timeStr = log.isLegacy ? 'Legacy Entry' : `Entry ${index + 1}`;
                     if (log.timestamp && log.timestamp.seconds) {
                         timeStr = new Date(log.timestamp.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     }
 
                     const logId = log.id || 'legacy';
+
+                    const actionsHtml = log.isLegacy ?
+                        `<span style="font-size: 0.8em; color: #666;">(Legacy Data)</span>` :
+                        `<button class="log-btn log-edit-btn" onclick="editIndividualLog('adr', '${dailyData.date}', '${logId}')">Edit</button>
+                         <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('adr', '${dailyData.date}', '${logId}')">Delete</button>`;
 
                     logsHtml += `
                         <div class="game-log-item">
@@ -976,8 +1029,7 @@ function startAdrRealtimeListener() {
                                 <span class="game-log-metric">ADR: ${log.adrValue.toFixed(1)}</span>
                             </div>
                             <div class="log-actions">
-                                <button class="log-btn log-edit-btn" onclick="editIndividualLog('adr', '${dailyData.date}', '${logId}')">Edit</button>
-                                <button class="log-btn log-delete-btn" onclick="deleteIndividualLog('adr', '${dailyData.date}', '${logId}')">Delete</button>
+                                ${actionsHtml}
                             </div>
                         </div>
                     `;

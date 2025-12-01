@@ -484,15 +484,19 @@ input[type="date"] {
 
 /* History Grouping Styles - Hierarchy Tree */
 .history-day-group {
-    margin-bottom: 25px;
+    margin-bottom: 40px;
+    /* Increased separation between days */
     background-color: transparent;
     border-radius: 12px;
     overflow: hidden;
     border: 1px solid #444;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    /* Added shadow for depth */
 }
 
 .daily-summary {
-    padding: 15px 20px;
+    padding: 20px 25px;
+    /* Increased padding */
     background-color: #2a2a2a;
     display: flex;
     justify-content: space-between;
@@ -503,15 +507,17 @@ input[type="date"] {
 }
 
 .daily-summary .daily-date {
-    font-size: 1.1em;
+    font-size: 1.2em;
+    /* Larger date */
     font-weight: 700;
     color: #FFC300;
     display: block;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
 .game-logs-container {
-    padding: 20px;
+    padding: 30px;
+    /* Increased padding */
     background-color: #1e1e1e;
     position: relative;
 }
@@ -521,8 +527,9 @@ input[type="date"] {
     content: '';
     position: absolute;
     top: 0;
-    bottom: 25px;
-    left: 30px;
+    bottom: 30px;
+    left: 40px;
+    /* Moved line further right */
     width: 2px;
     background-color: #444;
 }
@@ -531,10 +538,12 @@ input[type="date"] {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px;
-    margin-bottom: 15px;
-    margin-left: 45px;
-    /* Indent from the line */
+    padding: 20px;
+    /* Increased padding */
+    margin-bottom: 20px;
+    /* Increased separation between logs */
+    margin-left: 60px;
+    /* Increased indent */
     background-color: #252525;
     border-radius: 8px;
     border: 1px solid #333;
@@ -551,10 +560,10 @@ input[type="date"] {
 .game-log-item::before {
     content: '';
     position: absolute;
-    left: -47px;
-    /* Reach back to the vertical line */
+    left: -62px;
+    /* Reach back to the vertical line (60px margin + 2px line) */
     top: 50%;
-    width: 45px;
+    width: 60px;
     height: 2px;
     background-color: #444;
 }
@@ -563,7 +572,7 @@ input[type="date"] {
 .game-log-item::after {
     content: '';
     position: absolute;
-    left: -51px;
+    left: -66px;
     /* Position on the vertical line */
     top: 50%;
     width: 10px;
@@ -579,16 +588,17 @@ input[type="date"] {
 }
 
 .game-log-time {
-    font-size: 0.85em;
+    font-size: 0.9em;
     color: #888;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
     display: block;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
 .game-log-metric {
-    font-size: 1.2em;
+    font-size: 1.3em;
+    /* Larger metric */
     font-weight: 600;
     color: #fff;
 }
