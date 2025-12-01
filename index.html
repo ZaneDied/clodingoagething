@@ -12,6 +12,22 @@
 
 <body>
     <div class="container">
+
+        <div class="mode-selector">
+            <button id="mode-restaurant-btn" class="mode-btn active">Restaurant</button>
+            <button id="mode-chef-btn" class="mode-btn">Chef</button>
+        </div>
+
+        <div class="title-button-group">
+            <button id="kda-title-btn" class="title-btn active">KDA</button>
+            <button id="hsr-title-btn" class="title-btn">HSR</button>
+            <button id="adr-title-btn" class="title-btn">ADR</button>
+        </div>
+
+        <p class="user-info-note">Your ID: <span id="user-id-display">PUBLIC</span></p>
+
+        <div id="message-box" class="message-box"></div>
+
         <div id="kda-tracker-content" class="tracker-content active">
             <div class="kda-summary-inline">
                 <h2>Overall Career KDA (K+A/D)</h2>
@@ -40,134 +56,75 @@
                 </div>
             </div>
 
-            <!DOCTYPE html>
-            <html lang="en">
+            <h2 class="history-header">Game History</h2>
+            <ul id="kda-list">
+                <li>Loading history...</li>
+            </ul>
+        </div>
 
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Restaurant</title>
-                <link rel="stylesheet" href="style.css">
-                <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
-                <script
-                    src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@1.2.1/dist/chartjs-plugin-zoom.min.js"></script>
-            </head>
+        <div id="hsr-tracker-content" class="tracker-content hidden">
+            <div class="kda-summary-inline">
+                <h2>Overall Career Headshot Rate (%)</h2>
+                <div id="overall-hsr">0.00%</div>
+            </div>
 
-            <body>
-                <div class="container">
-
-                    <div class="mode-selector">
-                        <button id="mode-restaurant-btn" class="mode-btn active">Restaurant</button>
-                        <button id="mode-chef-btn" class="mode-btn">Chef</button>
-                    </div>
-
-                    <div class="title-button-group">
-                        <button id="kda-title-btn" class="title-btn active">KDA</button>
-                        <button id="hsr-title-btn" class="title-btn">HSR</button>
-                        <button id="adr-title-btn" class="title-btn">ADR</button>
-                    </div>
-
-                    <p class="user-info-note">Your ID: <span id="user-id-display">PUBLIC</span></p>
-
-                    <div id="message-box" class="message-box"></div>
-
-                    <div id="kda-tracker-content" class="tracker-content active">
-                        <div class="kda-summary-inline">
-                            <h2>Overall Career KDA (K+A/D)</h2>
-                            <div id="overall-kda">0.00</div>
-                        </div>
-
-                        <div class="main-content">
-                            <div class="chart-area">
-                                <canvas id="kda-chart"></canvas>
-                                <div class="chart-controls">
-                                    <button id="reset-zoom-btn-kda" style="display: none;">Reset Zoom</button>
-                                </div>
-                            </div>
-
-                            <div class="input-sidebar">
-                                <label for="date-input-kda">Game Date</label>
-                                <input type="date" id="date-input-kda">
-
-                                <div class="kda-inputs">
-                                    <input type="number" id="kills-input" placeholder="Kills" min="0">
-                                    <input type="number" id="deaths-input" placeholder="Deaths" min="0">
-                                    <input type="number" id="assists-input" placeholder="Assists" min="0">
-                                </div>
-
-                                <button id="add-game-btn">Log Game (Aggregates to Daily Total)</button>
-                            </div>
-                        </div>
-
-                        <h2 class="history-header">Game History</h2>
-                        <ul id="kda-list">
-                            <li>Loading history...</li>
-                        </ul>
-                    </div>
-
-                    <div id="hsr-tracker-content" class="tracker-content hidden">
-                        <div class="kda-summary-inline">
-                            <h2>Overall Career Headshot Rate (%)</h2>
-                            <div id="overall-hsr">0.00%</div>
-                        </div>
-
-                        <div class="main-content">
-                            <div class="chart-area">
-                                <canvas id="hsr-chart"></canvas>
-                                <div class="chart-controls">
-                                    <button id="reset-zoom-btn-hsr" style="display: none;">Reset Zoom</button>
-                                </div>
-                            </div>
-
-                            <div class="input-sidebar">
-                                <label for="date-input-hsr">Game Date</label>
-                                <input type="date" id="date-input-hsr">
-
-                                <input type="number" id="hsr-rate-input" placeholder="Headshot Rate (%)" min="0"
-                                    max="100" step="0.01">
-
-                                <button id="add-hsr-btn">Log Headshot Rate (Daily Total)</button>
-                            </div>
-                        </div>
-
-                        <h2 class="history-header">Headshot Rate History</h2>
-                        <ul id="hsr-list">
-                            <li>Loading HSR history...</li>
-                        </ul>
-                    </div>
-
-                    <div id="adr-tracker-content" class="tracker-content hidden">
-                        <div class="kda-summary-inline">
-                            <h2>Overall Average Damage per Round (ADR)</h2>
-                            <div id="overall-adr">0.00</div>
-                        </div>
-
-                        <div class="main-content">
-                            <div class="chart-area">
-                                <canvas id="adr-chart"></canvas>
-                                <div class="chart-controls">
-                                    <button id="reset-zoom-btn-adr" style="display: none;">Reset Zoom</button>
-                                </div>
-                            </div>
-
-                            <div class="input-sidebar">
-                                <label for="date-input-adr">Game Date</label>
-                                <input type="date" id="date-input-adr">
-
-                                <input type="number" id="adr-input" placeholder="ADR Value" min="0" step="0.1">
-
-                                <button id="add-adr-btn">Log ADR (Daily Average)</button>
-                            </div>
-                        </div>
-
-                        <h2 class="history-header">ADR History</h2>
-                        <ul id="adr-list">
-                            <li>Loading ADR history...</li>
-                        </ul>
+            <div class="main-content">
+                <div class="chart-area">
+                    <canvas id="hsr-chart"></canvas>
+                    <div class="chart-controls">
+                        <button id="reset-zoom-btn-hsr" style="display: none;">Reset Zoom</button>
                     </div>
                 </div>
 
-                <script type="module" src="script.js"></script>
-            </body>
+                <div class="input-sidebar">
+                    <label for="date-input-hsr">Game Date</label>
+                    <input type="date" id="date-input-hsr">
 
-            </html>
+                    <input type="number" id="hsr-rate-input" placeholder="Headshot Rate (%)" min="0" max="100"
+                        step="0.01">
+
+                    <button id="add-hsr-btn">Log Headshot Rate (Daily Total)</button>
+                </div>
+            </div>
+
+            <h2 class="history-header">Headshot Rate History</h2>
+            <ul id="hsr-list">
+                <li>Loading HSR history...</li>
+            </ul>
+        </div>
+
+        <div id="adr-tracker-content" class="tracker-content hidden">
+            <div class="kda-summary-inline">
+                <h2>Overall Average Damage per Round (ADR)</h2>
+                <div id="overall-adr">0.00</div>
+            </div>
+
+            <div class="main-content">
+                <div class="chart-area">
+                    <canvas id="adr-chart"></canvas>
+                    <div class="chart-controls">
+                        <button id="reset-zoom-btn-adr" style="display: none;">Reset Zoom</button>
+                    </div>
+                </div>
+
+                <div class="input-sidebar">
+                    <label for="date-input-adr">Game Date</label>
+                    <input type="date" id="date-input-adr">
+
+                    <input type="number" id="adr-input" placeholder="ADR Value" min="0" step="0.1">
+
+                    <button id="add-adr-btn">Log ADR (Daily Average)</button>
+                </div>
+            </div>
+
+            <h2 class="history-header">ADR History</h2>
+            <ul id="adr-list">
+                <li>Loading ADR history...</li>
+            </ul>
+        </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+
+</html>
