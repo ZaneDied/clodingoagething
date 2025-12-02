@@ -131,6 +131,15 @@
                 <div id="overall-elo-rank" class="elo-rank-display">1500</div>
             </div>
 
+            <!-- Target Multiplier Control -->
+            <div class="elo-settings"
+                style="margin-bottom: 20px; padding: 15px; background-color: #2a2a2a; border-radius: 12px; border: 1px solid #444; display: flex; align-items: center; gap: 15px;">
+                <label for="target-multiplier-input" style="color: #ccc; font-weight: 600;">Target Multiplier:</label>
+                <input type="number" id="target-multiplier-input" value="1.5" step="0.1" min="1.0"
+                    style="padding: 8px; border-radius: 6px; border: 1px solid #555; background-color: #1e1e1e; color: #fff; width: 80px;">
+                <span style="color: #888; font-size: 0.9em;">(Defines Future Target based on Foundation)</span>
+            </div>
+
             <!-- KDA Elo Section -->
             <div class="elo-metric-section">
                 <h3>KDA Performance <span class="metric-elo-rank" id="kda-elo-rank">ELO: 1500</span></h3>

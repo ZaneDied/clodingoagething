@@ -51,6 +51,8 @@ const ELO_METRICS_COLLECTION = 'elo_metrics';
 const ELO_CONSTANTS = {
     BASELINE_ELO: 1500,           // R_Baseline
     GLOBAL_AVG_HSR: 20,           // 20% for HSR
+    GLOBAL_AVG_KDA: 1.0,          // 1.0 for KDA
+    GLOBAL_AVG_ADR: 80,           // 80 for ADR
     ELO_CONVERSION_FACTOR: 50,    // C_F
     K_FACTOR: 30,                 // K_Elo (base gain)
     TUNING_CONSTANT: 0.25,        // A (moderates proportional gain)
@@ -1201,21 +1203,25 @@ function calculateWEORisk(games) {
  * Calculate Projected Elo Rank based on current performance
  */
 function calculateProjectedElo(currentMetric, foundationMetric, metricType) {
-    const { BASELINE_ELO, GLOBAL_AVG_HSR, ELO_CONVERSION_FACTOR } = ELO_CONSTANTS;
+    const { BASELINE_ELO, GLOBAL_AVG_HSR, GLOBAL_AVG_KDA, GLOBAL_AVG_ADR, ELO_CONVERSION_FACTOR } = ELO_CONSTANTS;
 
     // Determine global average based on metric type
     let globalAvg;
     if (metricType === 'hsr') {
         globalAvg = GLOBAL_AVG_HSR;
+    } else if (metricType === 'kda') {
+        globalAvg = GLOBAL_AVG_KDA;
+    } else if (metricType === 'adr') {
+        globalAvg = GLOBAL_AVG_ADR;
     } else {
-        // For KDA and ADR, use the foundation metric as the baseline
-        globalAvg = foundationMetric;
+        globalAvg = foundationMetric; // Fallback
     }
 
     // Calculate metric difference
     const metricDiff = currentMetric - globalAvg;
 
     // Calculate projected Elo
+    // If metricDiff is negative (performance < globalAvg), ELO will drop below 1500
     const projectedElo = BASELINE_ELO + (metricDiff * ELO_CONVERSION_FACTOR);
 
     return Math.round(projectedElo);
@@ -1246,8 +1252,29 @@ async function calculateEloMetrics(metricType) {
         });
 
         if (gamesSnapshot.empty) {
-            console.log(`[${metricType.toUpperCase()}] ⚠️ No games found in collection`);
-            return null;
+            console.log(`[${metricType.toUpperCase()}] ⚠️ No games found in collection - Resetting ELO`);
+
+            // Reset ELO metrics to default state
+            const resetMetrics = {
+                metricType,
+                foundationMetric: 0,
+                totalGamesPlayed: 0,
+                timeInvested: 0,
+                currentMetric: 0,
+                momentumChange: 0,
+                last5Games: [],
+                targetMetric: 0,
+                projectedEloRank: 1500, // Reset to baseline
+                weoRisk: 'Low',
+                gamesPerDay: {},
+                lastUpdated: new Date()
+            };
+
+            // Store reset state in Firebase
+            const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
+            await setDoc(eloDocRef, resetMetrics);
+
+            return resetMetrics;
         }
 
         console.log(`[${metricType.toUpperCase()}] Found ${gamesSnapshot.size} documents`);
@@ -1286,7 +1313,7 @@ async function calculateEloMetrics(metricType) {
             totalGames = 0;
             gamesSnapshot.forEach((doc) => {
                 const data = doc.data();
-                totalGames += (data.gamesCount || 1); // Default to 1 if field doesn't exist (backwards compatibility)
+                totalGames += (data.gamesCount || 1);
             });
             console.log(`[${metricType.toUpperCase()}] Total individual games: ${totalGames}`);
         } else {
@@ -1294,24 +1321,42 @@ async function calculateEloMetrics(metricType) {
             totalGames = games.length;
         }
 
-        // Calculate Past (Foundation) - all-time average
-        const foundationMetric = games.reduce((sum, g) => sum + g.value, 0) / totalGames;
+        // --- NEW LOGIC: Daily vs Past ---
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-        // Calculate Present (Current) - last 5 games or all if < 5
-        let currentMetric;
-        let last5Games;
+        const pastGames = games.filter(g => g.date < today);
+        const todayGames = games.filter(g => g.date === today);
 
-        if (totalGames < 5) {
-            // Low data rule: Past === Present
-            currentMetric = foundationMetric;
-            last5Games = games.map(g => g.value);
+        // Calculate Foundation (Past) - Average of all games BEFORE today
+        let foundationMetric;
+        if (pastGames.length > 0) {
+            foundationMetric = pastGames.reduce((sum, g) => sum + g.value, 0) / pastGames.length;
         } else {
-            last5Games = games.slice(-5).map(g => g.value);
-            currentMetric = last5Games.reduce((sum, v) => sum + v, 0) / last5Games.length;
+            // If no past games, use global baseline
+            if (metricType === 'kda') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_KDA;
+            else if (metricType === 'hsr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_HSR;
+            else if (metricType === 'adr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_ADR;
         }
 
-        // Calculate Future (Target) - 1.5 × Foundation
-        const targetMetric = foundationMetric * 1.5;
+        // Calculate Present (Current) - Average of all games TODAY
+        let currentMetric;
+        let last5Games; // We'll keep this variable name for compatibility but it now means "Today's Games"
+
+        if (todayGames.length > 0) {
+            currentMetric = todayGames.reduce((sum, g) => sum + g.value, 0) / todayGames.length;
+            last5Games = todayGames.map(g => g.value);
+        } else {
+            // If no games today, Present = Foundation (no change yet)
+            currentMetric = foundationMetric;
+            last5Games = [];
+        }
+
+        // Get Target Multiplier from UI
+        const multiplierInput = document.getElementById('target-multiplier-input');
+        const multiplier = multiplierInput ? parseFloat(multiplierInput.value) : 1.5;
+
+        // Calculate Future (Target) - Foundation * Multiplier
+        const targetMetric = foundationMetric * multiplier;
 
         // Calculate Momentum Change
         const momentumChange = ((currentMetric / foundationMetric) - 1) * 100;
@@ -1814,6 +1859,17 @@ function setupLogListListeners(listElement, metricType) {
 setupLogListListeners(kdaList, 'kda');
 setupLogListListeners(hsrList, 'hsr');
 setupLogListListeners(adrList, 'adr');
+
+// Target Multiplier Event Listener
+const targetMultiplierInput = document.getElementById('target-multiplier-input');
+if (targetMultiplierInput) {
+    targetMultiplierInput.addEventListener('change', async () => {
+        console.log('Target Multiplier changed, recalculating ELO...');
+        await calculateEloMetrics('kda');
+        await calculateEloMetrics('hsr');
+        await calculateEloMetrics('adr');
+    });
+}
 
 // Start the application
 setInitialDate();
