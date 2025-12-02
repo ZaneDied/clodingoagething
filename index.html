@@ -242,6 +242,96 @@
                 </div>
             </div>
 
+            <!-- ELO System Manual -->
+            <div class="elo-manual"
+                style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: 16px; border: 2px solid #FFD700; box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);">
+                <h2
+                    style="color: #FFD700; margin-bottom: 20px; font-size: 28px; text-align: center; text-transform: uppercase; letter-spacing: 2px;">
+                    📖 ELO System Manual</h2>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">🎯 Overview</h3>
+                    <p style="color: #ccc; line-height: 1.8;">The ELO System is a <strong>pure logic-based performance
+                            tracker</strong> that calculates your skill rating by analyzing your entire game history. It
+                        compares each day's performance against the previous day to determine if you're improving or
+                        declining.</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">⚙️ Core Mechanics</h3>
+                    <p style="color: #ccc; line-height: 1.8; margin-bottom: 10px;">The system processes your games
+                        <strong>chronologically</strong> (oldest to newest) using an <strong>iterative
+                            calculation</strong>:</p>
+                    <ol style="color: #ccc; line-height: 2; padding-left: 20px;">
+                        <li><strong>Day 1:</strong> Your performance is compared to a <strong>Global Baseline</strong>
+                            (KDA: 1.0, HSR: 20%, ADR: 80).</li>
+                        <li><strong>Day 2 onwards:</strong> Each day's performance is compared to the <strong>previous
+                                day's performance</strong>.</li>
+                        <li><strong>ELO Change:</strong> If you beat yesterday → ELO goes UP ⬆️. If you fall short → ELO
+                            goes DOWN ⬇️.</li>
+                        <li><strong>Final ELO:</strong> The result after processing all historical data up to today.
+                        </li>
+                    </ol>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">📐 The Formula</h3>
+                    <div
+                        style="background-color: #0a0a0a; padding: 20px; border-radius: 12px; border-left: 4px solid #FFD700; margin-bottom: 15px;">
+                        <p style="color: #FFD700; font-family: 'Courier New', monospace; font-size: 16px; margin: 0;">
+                            <strong>ELO = 1500 + Σ (Performance - Foundation) × 50</strong>
+                        </p>
+                    </div>
+                    <ul style="color: #ccc; line-height: 2; padding-left: 20px;">
+                        <li><strong>1500:</strong> Starting baseline (Unranked).</li>
+                        <li><strong>Performance:</strong> Your stat for the current day (e.g., 1.5 KDA, 30% HSR).</li>
+                        <li><strong>Foundation:</strong> The previous day's stat (or Global Baseline for Day 1).</li>
+                        <li><strong>50:</strong> Conversion Factor (determines how drastically ELO changes per unit
+                            difference).</li>
+                        <li><strong>Σ (Sigma):</strong> Sum of all daily changes across your entire history.</li>
+                    </ul>
+                    <p style="color: #888; font-style: italic; margin-top: 10px;">Example: If you go from 1.0 KDA → 1.5
+                        KDA, that's +0.5 × 50 = <strong>+25 ELO</strong>.</p>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">🎨 Visual Features</h3>
+                    <ul style="color: #ccc; line-height: 2; padding-left: 20px;">
+                        <li><strong style="color: #4CAF50;">Green Bar:</strong> Shows your current performance. Green =
+                            at/above yesterday. <strong style="color: #ff6b6b;">Red</strong> = below yesterday.</li>
+                        <li><strong style="color: #FFD700;">Yellow Line (Target):</strong> The goal you need to hit
+                            (Yesterday × Target Multiplier).</li>
+                        <li><strong>Past:</strong> Yesterday's performance (your Foundation for today).</li>
+                        <li><strong>Present:</strong> Today's performance (or "Waiting for Data..." if you haven't
+                            played yet).</li>
+                        <li><strong>Future:</strong> Your target goal (Past × Multiplier).</li>
+                        <li><strong>Momentum:</strong> % change from Past to Present (positive = improving, negative =
+                            declining).</li>
+                        <li><strong>WEO Risk:</strong> Consistency metric (% of last 10 games where you underperformed
+                            your average).</li>
+                    </ul>
+                </div>
+
+                <div style="margin-bottom: 25px;">
+                    <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">🔧 How to Use</h3>
+                    <ol style="color: #ccc; line-height: 2; padding-left: 20px;">
+                        <li><strong>Log your games</strong> in the KDA/HSR/ADR tabs as usual.</li>
+                        <li><strong>Open the ELO tab</strong> to see your calculated skill rating.</li>
+                        <li><strong>Adjust Target Multiplier</strong> (default: 1.5) by clicking "Edit" if you want a
+                            higher/lower challenge.</li>
+                        <li><strong>Track trends:</strong> Watch the Green/Red bar and Momentum to see if you're on an
+                            upward or downward trajectory.</li>
+                    </ol>
+                </div>
+
+                <div
+                    style="text-align: center; padding: 20px; background-color: #0a0a0a; border-radius: 12px; border: 1px solid #333;">
+                    <p style="color: #888; font-size: 14px; margin: 0;">💡 <strong>Pro Tip:</strong> The system
+                        recalculates <strong>fresh every time</strong> you open this tab. No stale data, no bugs—just
+                        pure logic!</p>
+                </div>
+            </div>
+
             <!-- Time Invested Display -->
             <div class="elo-footer">
                 <p>Time Invested: <span id="total-time-invested">0 hours 0 minutes</span></p>
