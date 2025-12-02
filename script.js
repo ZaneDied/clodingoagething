@@ -1677,6 +1677,13 @@ function updateMetricDisplay(metricType, metrics) {
     }
     barFill.style.width = `${Math.min(fillPercent, 100)}%`;
 
+    // Color the bar based on performance vs foundation
+    if (metrics.currentMetric !== null && metrics.currentMetric < metrics.foundationMetric) {
+        barFill.style.backgroundColor = '#ff6b6b'; // Red for below foundation
+    } else {
+        barFill.style.backgroundColor = '#4caf50'; // Green for at/above foundation
+    }
+
     // Yellow Line (Target)
     const targetPercent = (metrics.targetMetric / maxScale) * 100;
     barTarget.style.left = `${Math.min(targetPercent, 100)}%`;
