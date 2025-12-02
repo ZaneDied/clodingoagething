@@ -243,8 +243,21 @@
             </div>
 
             <!-- ELO System Manual -->
+            <style>
+                @keyframes goldGlow {
+
+                    0%,
+                    100% {
+                        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 0 40px rgba(255, 215, 0, 0.2), 0 0 60px rgba(255, 215, 0, 0.1);
+                    }
+
+                    50% {
+                        box-shadow: 0 0 30px rgba(255, 215, 0, 0.6), 0 0 60px rgba(255, 215, 0, 0.3), 0 0 90px rgba(255, 215, 0, 0.15);
+                    }
+                }
+            </style>
             <div class="elo-manual"
-                style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: 16px; border: 2px solid #FFD700; box-shadow: 0 8px 32px rgba(255, 215, 0, 0.1);">
+                style="margin-top: 40px; padding: 30px; background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); border-radius: 16px; border: 2px solid #FFD700; animation: goldGlow 3s ease-in-out infinite;">
                 <h2
                     style="color: #FFD700; margin-bottom: 20px; font-size: 28px; text-align: center; text-transform: uppercase; letter-spacing: 2px;">
                     📖 ELO System Manual</h2>
@@ -261,7 +274,8 @@
                     <h3 style="color: #4CAF50; margin-bottom: 10px; font-size: 20px;">⚙️ Core Mechanics</h3>
                     <p style="color: #ccc; line-height: 1.8; margin-bottom: 10px;">The system processes your games
                         <strong>chronologically</strong> (oldest to newest) using an <strong>iterative
-                            calculation</strong>:</p>
+                            calculation</strong>:
+                    </p>
                     <ol style="color: #ccc; line-height: 2; padding-left: 20px;">
                         <li><strong>Day 1:</strong> Your performance is compared to a <strong>Global Baseline</strong>
                             (KDA: 1.0, HSR: 20%, ADR: 80).</li>
