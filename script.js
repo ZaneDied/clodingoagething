@@ -16,6 +16,7 @@ import {
 // VERSION
 // =================================================================
 const APP_VERSION = "Restore 1";
+console.log(`%c🎮 Tracker v${APP_VERSION}`, 'font-size: 16px; font-weight: bold; color: #4CAF50');
 
 // Global variables provided by the environment (if running in a special environment)
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
