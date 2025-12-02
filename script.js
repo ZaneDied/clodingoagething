@@ -1319,25 +1319,26 @@ async function calculateEloMetrics(metricType) {
             totalGames = games.length;
         }
 
-        // --- NEW LOGIC: Iterative ELO Calculation ---
+        // --- NEW LOGIC: Pure Iterative ELO Calculation (From Scratch) ---
         // 1. Get Target Multiplier (Public Firebase + Local Fallback)
         let multiplier = 1.5; // Default
 
-        // We use the value currently in the input (which is synced with Firebase/Local)
         const multiplierInput = document.getElementById('target-multiplier-input');
         if (multiplierInput) {
             multiplier = parseFloat(multiplierInput.value);
         }
 
-        // 2. Initialize ELO
-        let currentElo = ELO_CONSTANTS.BASELINE_ELO;
+        // 2. Initialize ELO State
+        let currentElo = ELO_CONSTANTS.BASELINE_ELO; // Start at 1500
         let foundationMetric = 0;
 
+        // Set initial baseline (The "Zero" comparison)
         if (metricType === 'kda') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_KDA;
         else if (metricType === 'hsr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_HSR;
         else if (metricType === 'adr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_ADR;
 
-        // 3. Iterate through games (FILTERING FUTURE DATES)
+        // 3. Iterate through ALL games chronologically
+        // We do NOT use any saved state. We replay history.
         const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
         games.forEach((game, index) => {
@@ -1345,20 +1346,31 @@ async function calculateEloMetrics(metricType) {
             if (game.date > today) return;
 
             const performance = game.value;
+
+            // Calculate Diff: Performance vs Foundation (Previous Game)
             const diff = performance - foundationMetric;
+
+            // Calculate ELO Change
+            // ELO += (Diff * ConversionFactor)
             const change = diff * ELO_CONSTANTS.ELO_CONVERSION_FACTOR;
 
             currentElo += change;
+
+            // Update Foundation for NEXT iteration
+            // The next game will be compared to THIS game's performance
             foundationMetric = performance;
         });
 
         // 4. Final Metrics for Display
-        // Filter games list to only include up to today for display logic
         const validGames = games.filter(g => g.date <= today);
 
         const lastGame = validGames[validGames.length - 1];
         const currentMetric = lastGame ? lastGame.value : 0;
 
+        // Foundation for UI Display:
+        // If we have games, the "Foundation" is the performance of the 2nd to last game
+        // (because the Last Game was compared to it).
+        // If only 1 game, Foundation is the Baseline.
         let displayFoundation = 0;
         if (validGames.length > 1) {
             displayFoundation = validGames[validGames.length - 2].value;
@@ -1371,7 +1383,7 @@ async function calculateEloMetrics(metricType) {
         const targetMetric = displayFoundation * multiplier;
         const momentumChange = displayFoundation > 0 ? ((currentMetric / displayFoundation) - 1) * 100 : 0;
         const weoRisk = calculateWEORisk(validGames);
-        const projectedEloRank = Math.round(currentElo);
+        const projectedEloRank = Math.round(currentElo); // The final result of the loop
 
         // Calculate Time Invested
         const timeInvested = totalGames * ELO_CONSTANTS.MINUTES_PER_GAME;
@@ -1387,7 +1399,7 @@ async function calculateEloMetrics(metricType) {
             gamesPerDay[dateKey] = count;
         });
 
-        // Prepare ELO metrics object
+        // Prepare ELO metrics object (for display updates)
         const eloMetrics = {
             metricType,
             foundationMetric: displayFoundation,
@@ -1403,7 +1415,8 @@ async function calculateEloMetrics(metricType) {
             lastUpdated: new Date()
         };
 
-        // Store in Firebase
+        // We still save the *result* to Firebase so other devices can see the latest ELO
+        // BUT we don't read it back for calculation. Calculation is always fresh.
         const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
         await setDoc(eloDocRef, eloMetrics);
 
