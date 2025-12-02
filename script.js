@@ -1508,19 +1508,20 @@ async function updateEloDisplay() {
     try {
         console.log('=== Starting ELO Display Update ===');
 
-        // Fetch ELO metrics for all three types
-        const kdaMetrics = await getEloMetrics('kda');
+        // Fetch ELO metrics for all three types (Calculate Fresh)
+        const kdaMetrics = await calculateEloMetrics('kda');
         console.log('KDA Metrics:', kdaMetrics);
 
-        const hsrMetrics = await getEloMetrics('hsr');
+        const hsrMetrics = await calculateEloMetrics('hsr');
         console.log('HSR Metrics:', hsrMetrics);
 
-        const adrMetrics = await getEloMetrics('adr');
+        const adrMetrics = await calculateEloMetrics('adr');
         console.log('ADR Metrics:', adrMetrics);
 
         // Update KDA display
         if (kdaMetrics) {
             console.log('Updating KDA display...');
+            updateMetricDisplay('kda', kdaMetrics);
         } else {
             console.warn('No KDA metrics available');
         }
@@ -1585,25 +1586,6 @@ async function updateEloDisplay() {
     }
 }
 
-/**
- * Get ELO metrics from Firebase
- */
-async function getEloMetrics(metricType) {
-    try {
-        const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
-        const eloDoc = await getDoc(eloDocRef);
-
-        if (eloDoc.exists()) {
-            return eloDoc.data();
-        } else {
-            // Calculate if doesn't exist
-            return await calculateEloMetrics(metricType);
-        }
-    } catch (error) {
-        console.error(`Error getting ELO metrics for ${metricType}:`, error);
-        return null;
-    }
-}
 
 /**
  * Update individual metric display
