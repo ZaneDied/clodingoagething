@@ -1306,10 +1306,9 @@ async function calculateEloMetrics(metricType) {
         // Sort by date
         games.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-        // Calculate total games played (actual game count, not just days)
+        // Calculate total games played
         let totalGames;
         if (metricType === 'kda') {
-            // For KDA, sum up the gamesCount from each day
             totalGames = 0;
             gamesSnapshot.forEach((doc) => {
                 const data = doc.data();
@@ -1317,84 +1316,104 @@ async function calculateEloMetrics(metricType) {
             });
             console.log(`[${metricType.toUpperCase()}] Total individual games: ${totalGames}`);
         } else {
-            // For HSR and ADR, each entry = 1 game
             totalGames = games.length;
         }
 
-        // --- NEW LOGIC: Daily vs Past ---
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-        const pastGames = games.filter(g => g.date < today);
-        const todayGames = games.filter(g => g.date === today);
-
-        // Calculate Foundation (Past) - Average of all games BEFORE today
-        let foundationMetric;
-        if (pastGames.length > 0) {
-            foundationMetric = pastGames.reduce((sum, g) => sum + g.value, 0) / pastGames.length;
-        } else {
-            // If no past games, use global baseline
-            if (metricType === 'kda') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_KDA;
-            else if (metricType === 'hsr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_HSR;
-            else if (metricType === 'adr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_ADR;
-        }
-
-        // Calculate Present (Current) - Average of all games TODAY
-        let currentMetric;
-        let last5Games; // We'll keep this variable name for compatibility but it now means "Today's Games"
-
-        if (todayGames.length > 0) {
-            currentMetric = todayGames.reduce((sum, g) => sum + g.value, 0) / todayGames.length;
-            last5Games = todayGames.map(g => g.value);
-        } else {
-            // If no games today, Present = Foundation (no change yet)
-            currentMetric = foundationMetric;
-            last5Games = [];
-        }
-
-        // Get Target Multiplier from UI
+        // --- NEW LOGIC: Iterative ELO Calculation ---
+        // 1. Get Target Multiplier (Persistent)
         const multiplierInput = document.getElementById('target-multiplier-input');
-        const multiplier = multiplierInput ? parseFloat(multiplierInput.value) : 1.5;
+        let multiplier = 1.5; // Default
 
-        // Calculate Future (Target) - Foundation * Multiplier
-        const targetMetric = foundationMetric * multiplier;
+        // Try to load from localStorage first
+        const savedMultiplier = localStorage.getItem('eloTargetMultiplier');
+        if (savedMultiplier) {
+            multiplier = parseFloat(savedMultiplier);
+            if (multiplierInput && multiplierInput.value !== savedMultiplier) {
+                multiplierInput.value = savedMultiplier;
+            }
+        } else if (multiplierInput) {
+            multiplier = parseFloat(multiplierInput.value);
+        }
 
-        // Calculate Momentum Change
-        const momentumChange = ((currentMetric / foundationMetric) - 1) * 100;
+        // 2. Initialize ELO
+        let currentElo = ELO_CONSTANTS.BASELINE_ELO;
+        let foundationMetric = 0; // Will track "Previous Game" performance
 
-        // Calculate WEO Risk
+        // Set initial baseline based on metric type
+        if (metricType === 'kda') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_KDA;
+        else if (metricType === 'hsr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_HSR;
+        else if (metricType === 'adr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_ADR;
+
+        // 3. Iterate through ALL games
+        games.forEach((game, index) => {
+            const performance = game.value;
+
+            // Calculate Diff: Performance vs Foundation (Previous Game)
+            const diff = performance - foundationMetric;
+
+            // Calculate ELO Change
+            // We use a simplified K-factor approach here for the iterative step
+            // ELO += (Diff * ConversionFactor)
+            // Note: This might need tuning if it grows too fast
+            const change = diff * ELO_CONSTANTS.ELO_CONVERSION_FACTOR;
+
+            currentElo += change;
+
+            // Update Foundation for NEXT iteration
+            // Foundation becomes THIS game's performance
+            foundationMetric = performance;
+        });
+
+        // 4. Final Metrics for Display
+        // "Present" is the last game's performance (or average of today if we want to keep that visual)
+        // But for consistency with the new logic, let's make "Present" = Last Game
+        const lastGame = games[games.length - 1];
+        const currentMetric = lastGame ? lastGame.value : 0;
+
+        // "Foundation" for the UI is now the *Second to Last* game (or baseline), 
+        // because that's what the Last Game was compared against.
+        // OR we can just show the Last Game as Foundation for the *Next* game.
+        // Let's show:
+        // Past (Foundation) = The metric used to calculate the latest ELO change (i.e., 2nd to last game)
+        // Present (Current) = The latest game's performance
+
+        let displayFoundation = 0;
+        if (games.length > 1) {
+            displayFoundation = games[games.length - 2].value;
+        } else {
+            if (metricType === 'kda') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_KDA;
+            else if (metricType === 'hsr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_HSR;
+            else if (metricType === 'adr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_ADR;
+        }
+
+        const targetMetric = displayFoundation * multiplier;
+        const momentumChange = displayFoundation > 0 ? ((currentMetric / displayFoundation) - 1) * 100 : 0;
         const weoRisk = calculateWEORisk(games);
-
-        // Calculate Projected Elo Rank
-        const projectedEloRank = calculateProjectedElo(currentMetric, foundationMetric, metricType);
+        const projectedEloRank = Math.round(currentElo); // The iterative result IS the projected rank now
 
         // Calculate Time Invested
         const timeInvested = totalGames * ELO_CONSTANTS.MINUTES_PER_GAME;
 
-        // Count games per day (using actual counts)
+        // Count games per day
         const gamesPerDay = {};
         gamesSnapshot.forEach((doc) => {
             const data = doc.data();
             const dateKey = doc.id;
             let count = 1;
-
-            if (metricType === 'kda') {
-                count = parseInt(data.gamesCount) || 1;
-            } else {
-                count = parseInt(data.entryCount) || 1;
-            }
-
+            if (metricType === 'kda') count = parseInt(data.gamesCount) || 1;
+            else count = parseInt(data.entryCount) || 1;
             gamesPerDay[dateKey] = count;
         });
 
         // Prepare ELO metrics object
         const eloMetrics = {
             metricType,
-            foundationMetric,
+            foundationMetric: displayFoundation, // For UI
             totalGamesPlayed: totalGames,
             timeInvested,
             currentMetric,
             momentumChange,
-            last5Games,
+            last5Games: games.slice(-5).map(g => g.value),
             targetMetric,
             projectedEloRank,
             weoRisk,
@@ -1864,7 +1883,10 @@ setupLogListListeners(adrList, 'adr');
 const targetMultiplierInput = document.getElementById('target-multiplier-input');
 if (targetMultiplierInput) {
     targetMultiplierInput.addEventListener('change', async () => {
-        console.log('Target Multiplier changed, recalculating ELO...');
+        const newVal = targetMultiplierInput.value;
+        console.log(`Target Multiplier changed to ${newVal}, recalculating ELO...`);
+        localStorage.setItem('eloTargetMultiplier', newVal);
+
         await calculateEloMetrics('kda');
         await calculateEloMetrics('hsr');
         await calculateEloMetrics('adr');
