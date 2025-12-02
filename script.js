@@ -1320,66 +1320,48 @@ async function calculateEloMetrics(metricType) {
         }
 
         // --- NEW LOGIC: Iterative ELO Calculation ---
-        // 1. Get Target Multiplier (Persistent)
-        const multiplierInput = document.getElementById('target-multiplier-input');
+        // 1. Get Target Multiplier (Public Firebase + Local Fallback)
         let multiplier = 1.5; // Default
 
-        // Try to load from localStorage first
-        const savedMultiplier = localStorage.getItem('eloTargetMultiplier');
-        if (savedMultiplier) {
-            multiplier = parseFloat(savedMultiplier);
-            if (multiplierInput && multiplierInput.value !== savedMultiplier) {
-                multiplierInput.value = savedMultiplier;
-            }
-        } else if (multiplierInput) {
+        // We use the value currently in the input (which is synced with Firebase/Local)
+        const multiplierInput = document.getElementById('target-multiplier-input');
+        if (multiplierInput) {
             multiplier = parseFloat(multiplierInput.value);
         }
 
         // 2. Initialize ELO
         let currentElo = ELO_CONSTANTS.BASELINE_ELO;
-        let foundationMetric = 0; // Will track "Previous Game" performance
+        let foundationMetric = 0;
 
-        // Set initial baseline based on metric type
         if (metricType === 'kda') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_KDA;
         else if (metricType === 'hsr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_HSR;
         else if (metricType === 'adr') foundationMetric = ELO_CONSTANTS.GLOBAL_AVG_ADR;
 
-        // 3. Iterate through ALL games
+        // 3. Iterate through games (FILTERING FUTURE DATES)
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
         games.forEach((game, index) => {
+            // SKIP FUTURE GAMES
+            if (game.date > today) return;
+
             const performance = game.value;
-
-            // Calculate Diff: Performance vs Foundation (Previous Game)
             const diff = performance - foundationMetric;
-
-            // Calculate ELO Change
-            // We use a simplified K-factor approach here for the iterative step
-            // ELO += (Diff * ConversionFactor)
-            // Note: This might need tuning if it grows too fast
             const change = diff * ELO_CONSTANTS.ELO_CONVERSION_FACTOR;
 
             currentElo += change;
-
-            // Update Foundation for NEXT iteration
-            // Foundation becomes THIS game's performance
             foundationMetric = performance;
         });
 
         // 4. Final Metrics for Display
-        // "Present" is the last game's performance (or average of today if we want to keep that visual)
-        // But for consistency with the new logic, let's make "Present" = Last Game
-        const lastGame = games[games.length - 1];
+        // Filter games list to only include up to today for display logic
+        const validGames = games.filter(g => g.date <= today);
+
+        const lastGame = validGames[validGames.length - 1];
         const currentMetric = lastGame ? lastGame.value : 0;
 
-        // "Foundation" for the UI is now the *Second to Last* game (or baseline), 
-        // because that's what the Last Game was compared against.
-        // OR we can just show the Last Game as Foundation for the *Next* game.
-        // Let's show:
-        // Past (Foundation) = The metric used to calculate the latest ELO change (i.e., 2nd to last game)
-        // Present (Current) = The latest game's performance
-
         let displayFoundation = 0;
-        if (games.length > 1) {
-            displayFoundation = games[games.length - 2].value;
+        if (validGames.length > 1) {
+            displayFoundation = validGames[validGames.length - 2].value;
         } else {
             if (metricType === 'kda') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_KDA;
             else if (metricType === 'hsr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_HSR;
@@ -1388,8 +1370,8 @@ async function calculateEloMetrics(metricType) {
 
         const targetMetric = displayFoundation * multiplier;
         const momentumChange = displayFoundation > 0 ? ((currentMetric / displayFoundation) - 1) * 100 : 0;
-        const weoRisk = calculateWEORisk(games);
-        const projectedEloRank = Math.round(currentElo); // The iterative result IS the projected rank now
+        const weoRisk = calculateWEORisk(validGames);
+        const projectedEloRank = Math.round(currentElo);
 
         // Calculate Time Invested
         const timeInvested = totalGames * ELO_CONSTANTS.MINUTES_PER_GAME;
@@ -1408,12 +1390,12 @@ async function calculateEloMetrics(metricType) {
         // Prepare ELO metrics object
         const eloMetrics = {
             metricType,
-            foundationMetric: displayFoundation, // For UI
+            foundationMetric: displayFoundation,
             totalGamesPlayed: totalGames,
             timeInvested,
             currentMetric,
             momentumChange,
-            last5Games: games.slice(-5).map(g => g.value),
+            last5Games: validGames.slice(-5).map(g => g.value),
             targetMetric,
             projectedEloRank,
             weoRisk,
@@ -1428,10 +1410,86 @@ async function calculateEloMetrics(metricType) {
         return eloMetrics;
 
     } catch (error) {
-        console.error(`Error calculating ELO metrics for ${metricType}:`, error);
+        console.error(`[${metricType.toUpperCase()}] Error calculating ELO:`, error);
         return null;
     }
 }
+
+// ==========================================
+// Target Multiplier Logic (Public Firebase)
+// ==========================================
+async function initTargetMultiplier() {
+    const displayContainer = document.getElementById('multiplier-display-container');
+    const editContainer = document.getElementById('multiplier-edit-container');
+    const valueDisplay = document.getElementById('multiplier-value-display');
+    const input = document.getElementById('target-multiplier-input');
+    const editBtn = document.getElementById('edit-multiplier-btn');
+    const confirmBtn = document.getElementById('confirm-multiplier-btn');
+    const cancelBtn = document.getElementById('cancel-multiplier-btn');
+
+    if (!input) return;
+
+    // 1. Load from Firebase
+    try {
+        const settingsRef = doc(db, 'users', userId, 'settings', 'elo');
+        const docSnap = await getDoc(settingsRef);
+
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.targetMultiplier) {
+                input.value = data.targetMultiplier;
+                valueDisplay.textContent = data.targetMultiplier;
+            }
+        }
+    } catch (error) {
+        console.error("Error loading multiplier:", error);
+    }
+
+    // 2. UI Event Listeners
+    editBtn.onclick = () => {
+        displayContainer.style.display = 'none';
+        editContainer.style.display = 'flex';
+        input.focus();
+    };
+
+    cancelBtn.onclick = () => {
+        input.value = valueDisplay.textContent; // Reset to saved value
+        editContainer.style.display = 'none';
+        displayContainer.style.display = 'flex';
+    };
+
+    confirmBtn.onclick = async () => {
+        const newVal = parseFloat(input.value);
+        if (isNaN(newVal) || newVal < 1.0) {
+            alert("Please enter a valid multiplier (>= 1.0)");
+            return;
+        }
+
+        // Update UI immediately
+        valueDisplay.textContent = newVal;
+        editContainer.style.display = 'none';
+        displayContainer.style.display = 'flex';
+
+        // Save to Firebase
+        try {
+            const settingsRef = doc(db, 'users', userId, 'settings', 'elo');
+            await setDoc(settingsRef, { targetMultiplier: newVal }, { merge: true });
+            console.log("Multiplier saved to Firebase");
+        } catch (error) {
+            console.error("Error saving multiplier:", error);
+        }
+
+        // Recalculate ELO
+        console.log("Recalculating ELO with new multiplier...");
+        await calculateEloMetrics('kda');
+        await calculateEloMetrics('hsr');
+        await calculateEloMetrics('adr');
+    };
+}
+
+// Start the application
+initTargetMultiplier(); // Initialize multiplier logic
+setInitialDate();
 
 async function updateEloDisplay() {
     try {
@@ -1450,7 +1508,6 @@ async function updateEloDisplay() {
         // Update KDA display
         if (kdaMetrics) {
             console.log('Updating KDA display...');
-            updateMetricDisplay('kda', kdaMetrics);
         } else {
             console.warn('No KDA metrics available');
         }
