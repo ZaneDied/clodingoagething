@@ -1363,25 +1363,48 @@ async function calculateEloMetrics(metricType) {
 
         // 4. Final Metrics for Display
         const validGames = games.filter(g => g.date <= today);
-
         const lastGame = validGames[validGames.length - 1];
-        const currentMetric = lastGame ? lastGame.value : 0;
 
-        // Foundation for UI Display:
-        // If we have games, the "Foundation" is the performance of the 2nd to last game
-        // (because the Last Game was compared to it).
-        // If only 1 game, Foundation is the Baseline.
+        let currentMetric = null;
         let displayFoundation = 0;
-        if (validGames.length > 1) {
-            displayFoundation = validGames[validGames.length - 2].value;
+
+        // Check if we have data for TODAY
+        if (lastGame && lastGame.date === today) {
+            // We have data for today
+            currentMetric = lastGame.value;
+
+            // Foundation is the game BEFORE today (2nd to last)
+            if (validGames.length > 1) {
+                displayFoundation = validGames[validGames.length - 2].value;
+            } else {
+                // Fallback to baseline if today is the ONLY game
+                if (metricType === 'kda') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_KDA;
+                else if (metricType === 'hsr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_HSR;
+                else if (metricType === 'adr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_ADR;
+            }
         } else {
-            if (metricType === 'kda') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_KDA;
-            else if (metricType === 'hsr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_HSR;
-            else if (metricType === 'adr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_ADR;
+            // No data for today - Empty State
+            currentMetric = null; // Indicates "Waiting for data"
+
+            // Foundation is the LAST recorded game (Yesterday or earlier)
+            if (lastGame) {
+                displayFoundation = lastGame.value;
+            } else {
+                // No games ever? Baseline.
+                if (metricType === 'kda') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_KDA;
+                else if (metricType === 'hsr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_HSR;
+                else if (metricType === 'adr') displayFoundation = ELO_CONSTANTS.GLOBAL_AVG_ADR;
+            }
         }
 
         const targetMetric = displayFoundation * multiplier;
-        const momentumChange = displayFoundation > 0 ? ((currentMetric / displayFoundation) - 1) * 100 : 0;
+
+        // Momentum: Compare Current vs Foundation (if Current exists)
+        // If no current, momentum is 0 or undefined
+        const momentumChange = (currentMetric !== null && displayFoundation > 0)
+            ? ((currentMetric / displayFoundation) - 1) * 100
+            : 0;
+
         const weoRisk = calculateWEORisk(validGames);
         const projectedEloRank = Math.round(currentElo); // The final result of the loop
 
@@ -1598,16 +1621,6 @@ function updateMetricDisplay(metricType, metrics) {
     // Update Past/Present/Future values
     document.getElementById(`${prefix}-past`).textContent =
         metrics.foundationMetric.toFixed(2) + suffix;
-    document.getElementById(`${prefix}-present`).textContent =
-        metrics.currentMetric.toFixed(2) + suffix;
-    document.getElementById(`${prefix}-future`).textContent =
-        metrics.targetMetric.toFixed(2) + suffix;
-
-    // Update momentum with color coding
-    const momentumEl = document.getElementById(`${prefix}-momentum`);
-    const momentumSign = metrics.momentumChange >= 0 ? '+' : '';
-    momentumEl.textContent = `${momentumSign}${metrics.momentumChange.toFixed(1)}%`;
-    momentumEl.style.color = metrics.momentumChange >= 0 ? '#4caf50' : '#ff6b6b';
 
     // Update WEO Risk
     document.getElementById(`${prefix}-weo`).textContent =
@@ -1623,35 +1636,51 @@ function updateMetricDisplay(metricType, metrics) {
         eloRankEl.textContent = `ELO: ${metrics.projectedEloRank}`;
     }
 
-    // Update Present layer color
-    const presentLayer = document.getElementById(`${prefix}-present-layer`);
-    if (presentLayer) {
-        presentLayer.classList.remove('positive', 'negative');
-        if (metrics.momentumChange > 0) {
-            presentLayer.classList.add('positive');
-        } else if (metrics.momentumChange < 0) {
-            presentLayer.classList.add('negative');
-        }
+    // Update Present (Current)
+    const presentEl = document.getElementById(`${metricType}-present`);
+    const presentLayer = document.getElementById(`${metricType}-present-layer`);
+
+    if (metrics.currentMetric !== null) {
+        // Data exists for today
+        presentEl.textContent = formatMetric(metrics.currentMetric, metricType);
+        presentLayer.classList.remove('waiting'); // Ensure waiting class is removed
+    } else {
+        // No data for today
+        presentEl.textContent = "Waiting for Data...";
+        presentLayer.classList.add('waiting'); // Add styling class if needed
     }
 
-    // Update visual bar
-    const barFill = document.getElementById(`${prefix}-bar-fill`);
-    const barTarget = document.getElementById(`${prefix}-bar-target`);
+    // Update Future (Target)
+    const futureEl = document.getElementById(`${metricType}-future`);
+    futureEl.textContent = formatMetric(metrics.targetMetric, metricType);
 
-    if (barFill && barTarget) {
-        // Calculate bar widths as percentages
-        const maxValue = Math.max(metrics.foundationMetric, metrics.currentMetric, metrics.targetMetric) * 1.1;
-        const currentPercent = (metrics.currentMetric / maxValue) * 100;
-        const targetPercent = (metrics.targetMetric / maxValue) * 100;
+    // Update Visual Bars
+    const barFill = document.getElementById(`${metricType}-bar-fill`);
+    const barTarget = document.getElementById(`${metricType}-bar-target`);
 
-        barFill.style.width = `${currentPercent}%`;
-        barTarget.style.left = `${targetPercent}%`;
+    // Calculate percentages for bars (relative to Target * 1.2 for headroom)
+    const maxScale = metrics.targetMetric * 1.2 || 100; // Avoid div by zero
 
-        // Color code the bar fill
-        barFill.classList.remove('negative');
-        if (metrics.momentumChange < 0) {
-            barFill.classList.add('negative');
-        }
+    // Green Bar (Current)
+    let fillPercent = 0;
+    if (metrics.currentMetric !== null) {
+        fillPercent = (metrics.currentMetric / maxScale) * 100;
+    }
+    barFill.style.width = `${Math.min(fillPercent, 100)}%`;
+
+    // Yellow Line (Target)
+    const targetPercent = (metrics.targetMetric / maxScale) * 100;
+    barTarget.style.left = `${Math.min(targetPercent, 100)}%`;
+
+    // Update Stats
+    const momentumEl = document.getElementById(`${metricType}-momentum`);
+    const momentumVal = metrics.momentumChange;
+    momentumEl.textContent = `${momentumVal > 0 ? '+' : ''}${momentumVal.toFixed(1)}%`;
+    momentumEl.className = momentumVal >= 0 ? 'positive-momentum' : 'negative-momentum';
+
+    if (metrics.currentMetric === null) {
+        momentumEl.textContent = "--";
+        momentumEl.className = '';
     }
 }
 
