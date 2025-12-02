@@ -16,7 +16,11 @@ import {
 // VERSION
 // =================================================================
 const APP_VERSION = "Restore 1";
-console.log(`%c🎮 Tracker v${APP_VERSION}`, 'font-size: 16px; font-weight: bold; color: #4CAF50');
+console.log(`%c
+╔═══════════════════════════════════╗
+║     VALORANT TRACKER v${APP_VERSION}     ║
+╚═══════════════════════════════════╝
+`, 'color: #FFD700; font-weight: bold; font-size: 14px;');
 
 // Global variables provided by the environment (if running in a special environment)
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
@@ -1423,7 +1427,7 @@ async function calculateEloMetrics(metricType) {
             gamesPerDay[dateKey] = count;
         });
 
-        // Prepare ELO metrics object (for display updates)
+        // Prepare ELO metrics object (for display only - not saved)
         const eloMetrics = {
             metricType,
             foundationMetric: displayFoundation,
@@ -1439,11 +1443,7 @@ async function calculateEloMetrics(metricType) {
             lastUpdated: new Date()
         };
 
-        // We still save the *result* to Firebase so other devices can see the latest ELO
-        // BUT we don't read it back for calculation. Calculation is always fresh.
-        const eloDocRef = doc(db, 'users', userId, ELO_METRICS_COLLECTION, metricType);
-        await setDoc(eloDocRef, eloMetrics);
-
+        // ELO is pure logic - no Firebase save needed
         return eloMetrics;
 
     } catch (error) {
@@ -1466,20 +1466,11 @@ async function initTargetMultiplier() {
 
     if (!input) return;
 
-    // 1. Load from Firebase
-    try {
-        const settingsRef = doc(db, 'users', userId, 'settings', 'elo');
-        const docSnap = await getDoc(settingsRef);
-
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.targetMultiplier) {
-                input.value = data.targetMultiplier;
-                valueDisplay.textContent = data.targetMultiplier;
-            }
-        }
-    } catch (error) {
-        console.error("Error loading multiplier:", error);
+    // 1. Load from localStorage
+    const savedMultiplier = localStorage.getItem('eloTargetMultiplier');
+    if (savedMultiplier) {
+        input.value = savedMultiplier;
+        valueDisplay.textContent = savedMultiplier;
     }
 
     // 2. UI Event Listeners
@@ -1490,7 +1481,7 @@ async function initTargetMultiplier() {
     };
 
     cancelBtn.onclick = () => {
-        input.value = valueDisplay.textContent; // Reset to saved value
+        input.value = valueDisplay.textContent;
         editContainer.style.display = 'none';
         displayContainer.style.display = 'flex';
     };
@@ -1507,13 +1498,8 @@ async function initTargetMultiplier() {
         editContainer.style.display = 'none';
         displayContainer.style.display = 'flex';
 
-        // Save to Firebase
-        try {
-            const settingsRef = doc(db, 'users', userId, 'settings', 'elo');
-            await setDoc(settingsRef, { targetMultiplier: newVal }, { merge: true });
-        } catch (error) {
-            console.error("Error saving multiplier:", error);
-        }
+        // Save to localStorage
+        localStorage.setItem('eloTargetMultiplier', newVal);
 
         // Recalculate ELO
         await calculateEloMetrics('kda');
