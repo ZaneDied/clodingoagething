@@ -12,6 +12,11 @@ import {
     Timestamp
 } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
+// =================================================================
+// VERSION
+// =================================================================
+const APP_VERSION = "Restore 1";
+
 // Global variables provided by the environment (if running in a special environment)
 const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
 
@@ -1232,7 +1237,6 @@ function calculateProjectedElo(currentMetric, foundationMetric, metricType) {
  */
 async function calculateEloMetrics(metricType) {
     try {
-        console.log(`[${metricType.toUpperCase()}] Starting ELO calculation...`);
 
         // Determine collection name
         let collectionName;
@@ -1240,7 +1244,6 @@ async function calculateEloMetrics(metricType) {
         else if (metricType === 'hsr') collectionName = HSR_COLLECTION_NAME;
         else if (metricType === 'adr') collectionName = ADR_COLLECTION_NAME;
 
-        console.log(`[${metricType.toUpperCase()}] Collection: users/${userId}/${collectionName}`);
 
         // Fetch all games for this metric
         const gamesRef = collection(db, 'users', userId, collectionName);
@@ -1252,7 +1255,6 @@ async function calculateEloMetrics(metricType) {
         });
 
         if (gamesSnapshot.empty) {
-            console.log(`[${metricType.toUpperCase()}] ⚠️ No games found in collection - Resetting ELO`);
 
             // Reset ELO metrics to default state
             const resetMetrics = {
@@ -1277,7 +1279,6 @@ async function calculateEloMetrics(metricType) {
             return resetMetrics;
         }
 
-        console.log(`[${metricType.toUpperCase()}] Found ${gamesSnapshot.size} documents`);
 
         // Extract game values with dates
         const games = [];
@@ -1314,7 +1315,6 @@ async function calculateEloMetrics(metricType) {
                 const data = doc.data();
                 totalGames += (data.gamesCount || 1);
             });
-            console.log(`[${metricType.toUpperCase()}] Total individual games: ${totalGames}`);
         } else {
             totalGames = games.length;
         }
@@ -1510,13 +1510,11 @@ async function initTargetMultiplier() {
         try {
             const settingsRef = doc(db, 'users', userId, 'settings', 'elo');
             await setDoc(settingsRef, { targetMultiplier: newVal }, { merge: true });
-            console.log("Multiplier saved to Firebase");
         } catch (error) {
             console.error("Error saving multiplier:", error);
         }
 
         // Recalculate ELO
-        console.log("Recalculating ELO with new multiplier...");
         await calculateEloMetrics('kda');
         await calculateEloMetrics('hsr');
         await calculateEloMetrics('adr');
@@ -1529,21 +1527,16 @@ setInitialDate();
 
 async function updateEloDisplay() {
     try {
-        console.log('=== Starting ELO Display Update ===');
 
         // Fetch ELO metrics for all three types (Calculate Fresh)
         const kdaMetrics = await calculateEloMetrics('kda');
-        console.log('KDA Metrics:', kdaMetrics);
 
         const hsrMetrics = await calculateEloMetrics('hsr');
-        console.log('HSR Metrics:', hsrMetrics);
 
         const adrMetrics = await calculateEloMetrics('adr');
-        console.log('ADR Metrics:', adrMetrics);
 
         // Update KDA display
         if (kdaMetrics) {
-            console.log('Updating KDA display...');
             updateMetricDisplay('kda', kdaMetrics);
         } else {
             console.warn('No KDA metrics available');
@@ -1551,7 +1544,6 @@ async function updateEloDisplay() {
 
         // Update HSR display
         if (hsrMetrics) {
-            console.log('Updating HSR display...');
             updateMetricDisplay('hsr', hsrMetrics);
         } else {
             console.warn('No HSR metrics available - do you have HSR data logged?');
@@ -1559,7 +1551,6 @@ async function updateEloDisplay() {
 
         // Update ADR display
         if (adrMetrics) {
-            console.log('Updating ADR display...');
             updateMetricDisplay('adr', adrMetrics);
         } else {
             console.warn('No ADR metrics available - do you have ADR data logged?');
@@ -1567,11 +1558,9 @@ async function updateEloDisplay() {
 
         // Calculate overall projected Elo (average of all three)
         const validMetrics = [kdaMetrics, hsrMetrics, adrMetrics].filter(m => m !== null);
-        console.log('Valid metrics count:', validMetrics.length);
 
         if (validMetrics.length > 0) {
             const avgElo = validMetrics.reduce((sum, m) => sum + m.projectedEloRank, 0) / validMetrics.length;
-            console.log('Average ELO:', avgElo);
             document.getElementById('overall-elo-rank').textContent = Math.round(avgElo);
         }
 
@@ -1599,10 +1588,8 @@ async function updateEloDisplay() {
         const totalTime = totalMaxGames * 30; // 30 mins per game
         const hours = Math.floor(totalTime / 60);
         const minutes = totalTime % 60;
-        console.log('Total time (Max Logs Logic):', hours, 'hours', minutes, 'minutes');
         document.getElementById('total-time-invested').textContent = `${hours} hours ${minutes} minutes`;
 
-        console.log('=== ELO Display Update Complete ===');
 
     } catch (error) {
         console.error('Error updating ELO display:', error);
@@ -1737,7 +1724,6 @@ window.deleteIndividualLog = async (metricType, date, logId) => {
             await setDoc(docRef, updates, { merge: true });
         }
 
-        console.log(`Deleted log ${logId} from ${date}`);
 
         // Recalculate ELO
         await calculateEloMetrics(metricType);
@@ -1885,7 +1871,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updates.logs = logs;
 
                 await setDoc(docRef, updates, { merge: true });
-                console.log(`Updated log ${logId} in ${date}`);
 
                 // Recalculate ELO
                 await calculateEloMetrics(metricType);
@@ -1962,10 +1947,8 @@ function setupLogListListeners(listElement, metricType) {
         const metric = btn.dataset.metric || metricType;
 
         if (btn.classList.contains('log-edit-btn')) {
-            console.log(`Edit clicked: ${metric} ${date} ${id}`);
             editIndividualLog(metric, date, id);
         } else if (btn.classList.contains('log-delete-btn')) {
-            console.log(`Delete clicked: ${metric} ${date} ${id}`);
             deleteIndividualLog(metric, date, id);
         }
     });
@@ -1981,7 +1964,6 @@ const targetMultiplierInput = document.getElementById('target-multiplier-input')
 if (targetMultiplierInput) {
     targetMultiplierInput.addEventListener('change', async () => {
         const newVal = targetMultiplierInput.value;
-        console.log(`Target Multiplier changed to ${newVal}, recalculating ELO...`);
         localStorage.setItem('eloTargetMultiplier', newVal);
 
         await calculateEloMetrics('kda');
