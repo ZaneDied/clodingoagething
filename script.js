@@ -1611,6 +1611,15 @@ async function updateEloDisplay() {
 
 
 /**
+ * Helper to format metric values
+ */
+function formatMetric(value, metricType) {
+    if (value === null || value === undefined) return '--';
+    const suffix = metricType === 'hsr' ? '%' : '';
+    return Number(value).toFixed(2) + suffix;
+}
+
+/**
  * Update individual metric display
  */
 function updateMetricDisplay(metricType, metrics) {
