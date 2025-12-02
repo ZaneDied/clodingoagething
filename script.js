@@ -15,7 +15,7 @@ import {
 // =================================================================
 // VERSION
 // =================================================================
-const APP_VERSION = "Restore 1";
+const APP_VERSION = "1.2";
 console.log(`%c
 ╔═══════════════════════════════════╗
 ║     VALORANT TRACKER v${APP_VERSION}     ║
@@ -1505,6 +1505,9 @@ async function initTargetMultiplier() {
         await calculateEloMetrics('kda');
         await calculateEloMetrics('hsr');
         await calculateEloMetrics('adr');
+
+        // Instantly refresh the ELO display
+        await updateEloDisplay();
     };
 }
 
